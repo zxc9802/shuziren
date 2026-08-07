@@ -1,0 +1,7 @@
+interface:
+  display_name: "数字人skill"
+  short_description: "数字人口播：可变形象、固定声音与真实渲染核验"
+  default_prompt: "Use $rachel-digital-human-production（数字人skill）执行当前数字人口播任务，先询问是否生成一张候选图，候选图须我明确‘采用’，再确认预览，自动绑定 voice1 和已采用形象，通过 HeyGen 网页套餐额度生成 Avatar IV，并核验真实渲染状态。"
+
+policy:
+  allow_implicit_invocation: false
