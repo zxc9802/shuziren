@@ -14,7 +14,6 @@ from scripts.dhflow.voice_director import plan_voice
 
 
 MIN_DURATION_SECONDS = 15.0
-MAX_DURATION_SECONDS = 90.0
 _SPOKEN_WORD = re.compile(r"[A-Za-z]+(?:['’-][A-Za-z]+)*")
 _ALLOWED_VISUAL_OVERRIDES = frozenset(
     {
@@ -31,6 +30,7 @@ _ALLOWED_VISUAL_OVERRIDES = frozenset(
         "camera",
         "safe_areas",
         "image_qa_requirements",
+        "view_mode",
     }
 )
 _ALLOWED_NESTED_OVERRIDES = {
@@ -64,13 +64,13 @@ _REGISTRY_OWNED_NAMES = frozenset(
 
 
 class DurationOutOfRangeError(ValueError):
-    """Raised with a rewrite-suggestion status when estimated speech is out of range."""
+    """Raised with a rewrite suggestion when estimated speech is too short."""
 
     def __init__(self, status: dict):
         self.status = status
         super().__init__(
-            f"estimated duration {status['estimated_duration_seconds']:.2f}s is outside "
-            f"{MIN_DURATION_SECONDS:.0f}-{MAX_DURATION_SECONDS:.0f}s"
+            f"estimated duration {status['estimated_duration_seconds']:.2f}s is below "
+            f"the {MIN_DURATION_SECONDS:.0f}s minimum"
         )
 
 
@@ -124,6 +124,7 @@ def build_job_plan(
         beats,
         hand_topology=hand_topology,
         profile=profile,
+        view_mode=visual_plan["view_mode"],
     )
     heygen_app_plan = build_web_submission_plan(
         script=script,
@@ -143,6 +144,7 @@ def build_job_plan(
             "identity_alias": assets["image_alias"],
             "image_generation_choice": "pending",
             "selected_image_source": "pending",
+            "view_mode": visual_plan["view_mode"],
             "preview_choice": "pending",
             "aspect_ratio": visual_plan["aspect_ratio"],
             "raw_review_resolution": visual_plan["resolution"],
@@ -217,26 +219,19 @@ def _reject_registry_owned_keys(value, path: str, active_containers=None) -> Non
 
 
 def _require_supported_duration(script: str, estimated_duration: float) -> None:
-    if MIN_DURATION_SECONDS <= estimated_duration <= MAX_DURATION_SECONDS:
+    if estimated_duration >= MIN_DURATION_SECONDS:
         return
-    too_short = estimated_duration < MIN_DURATION_SECONDS
     raise DurationOutOfRangeError(
         {
             "status": "needs_script_confirmation",
-            "reason": (
-                "estimated_duration_too_short"
-                if too_short
-                else "estimated_duration_too_long"
-            ),
+            "reason": "estimated_duration_too_short",
             "estimated_duration_seconds": estimated_duration,
             "allowed_duration_seconds": {
                 "minimum": MIN_DURATION_SECONDS,
-                "maximum": MAX_DURATION_SECONDS,
+                "maximum": None,
             },
             "rewrite_suggestion": (
                 "Expand the script before planning; the original script was not changed."
-                if too_short
-                else "Shorten the script before planning; the original script was not changed."
             ),
             "script": script,
         }
