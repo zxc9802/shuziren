@@ -1,4 +1,4 @@
-"""Deterministic plans for paid-account HeyGen browser submissions."""
+"""Deterministic plans for structured HeyGen plugin submissions."""
 
 import hashlib
 import json
@@ -7,19 +7,16 @@ import re
 from copy import deepcopy
 
 
-HEYGEN_WEB_TRANSPORT = "heygen-web-plan-credits"
+HEYGEN_WEB_TRANSPORT = "heygen-plugin-structured"
 
 _OPAQUE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,255}\Z")
 _ACTION_ORDER = (
-    "openLoggedInHeyGen",
-    "selectOrUploadApprovedLook",
-    "bindExactVoice",
-    "enterExactScript",
-    "setAvatarIvPortrait720p",
-    "disableExtras",
-    "applyMotionPrompt",
+    "inspectConnectedHeyGenAccount",
+    "resolveOrUploadApprovedLook",
+    "resolveExactVoice",
+    "buildStructuredPluginPayload",
     "verifyBeforeSpend",
-    "clickGenerate",
+    "submitPluginVideo",
     "verifyRealRender",
     "pollExistingVideo",
 )
@@ -34,7 +31,7 @@ def build_web_submission_plan(
     voice_id,
     avatar_group_id,
 ):
-    """Build a strict browser plan that spends paid-plan credits, not API credits."""
+    """Build a strict structured-plugin plan for the connected HeyGen account."""
     _require_nonempty_text(script, "script")
     _require_standard_json(voice_plan, "voice_plan")
     _require_standard_json(visual_plan, "visual_plan")
@@ -51,8 +48,10 @@ def build_web_submission_plan(
     _validate_visual_plan(visual_plan)
     if performance_plan.get("hand_topology") != visual_plan["hand_topology"]:
         raise ValueError("performance and visual hand topology must match")
+    if performance_plan.get("view_mode") != visual_plan["view_mode"]:
+        raise ValueError("performance and visual view mode must match")
 
-    motion_prompt = _build_motion_prompt(performance_beats)
+    motion_prompt = _build_motion_prompt(performance_beats, visual_plan)
     delivery_prompt = _build_delivery_prompt(voice_segments)
     script_sha256 = hashlib.sha256(script.encode("utf-8")).hexdigest()
     pre_submit = {
@@ -61,18 +60,27 @@ def build_web_submission_plan(
         "identityMasterAlias": visual_plan["identity_master_alias"],
         "approvedLookSource": "approved_job_image_or_original_image1",
         "maxCandidateImages": 1,
+        "viewMode": visual_plan["view_mode"],
+        "subjectOrientation": deepcopy(visual_plan["subject_orientation"]),
         "exactScript": script,
         "exactScriptSha256": script_sha256,
         "deliveryPlan": deepcopy(voice_segments),
         "deliveryPrompt": delivery_prompt,
         "aspectRatio": "9:16",
         "resolution": "720p",
-        "engine": "avatar_iv",
+        "requiredAvatarCapability": "avatar_iv",
+        "engineSelection": "plugin_auto_from_avatar_type",
         "captionsEnabled": False,
         "musicEnabled": False,
         "bRollEnabled": False,
         "cameraMotionEnabled": False,
         "motionPrompt": motion_prompt,
+        "previewContract": {
+            "targetSeconds": 15,
+            "useApprovedOpeningExcerpt": True,
+            "verifyActualDuration": True,
+            "claimExactOnlyAfterMeasurement": True,
+        },
         "durationVerification": {
             "basis": "exact_script_with_bound_voice",
             "requiredScriptSha256": script_sha256,
@@ -82,70 +90,74 @@ def build_web_submission_plan(
         },
         "guards": {
             "avatarMustBeBound": True,
+            "avatarMustSupportAvatarIV": True,
             "voiceIdMustMatch": True,
             "scriptMustMatchByteForByte": True,
+            "structuredPluginToolRequired": True,
+            "videoAgentRewriteForbidden": True,
             "durationMustMatchCompleteScript": True,
             "motionPromptMustBePresent": True,
             "extrasMustBeDisabled": True,
             "cameraMustRemainLocked": True,
             "settingsMustMatch": True,
             "candidateCountMustNotExceedOne": True,
+            "viewModeMustMatchApprovedLook": True,
             "onFailure": "stop_before_spend",
         },
     }
     plan = {
         "transport": HEYGEN_WEB_TRANSPORT,
-        "creditSource": "logged_in_paid_plan",
+        "creditSource": "connected_heygen_subscription_credits",
         "actionOrder": list(_ACTION_ORDER),
         "preSubmit": pre_submit,
         "actions": {
-            "openLoggedInHeyGen": {
-                "surface": "authenticated_web_app",
-                "requirePaidPlan": True,
-                "forbidApiCreditSubmission": True,
+            "inspectConnectedHeyGenAccount": {
+                "tool": "get_current_user",
+                "requireConnectedAccount": True,
+                "requireSubscriptionCredits": True,
             },
-            "selectOrUploadApprovedLook": {
+            "resolveOrUploadApprovedLook": {
                 "requiredAvatarGroupId": avatar_group_id,
                 "allowedSources": ["original_image1", "approved_generated_candidate"],
                 "requiresExactApprovedArtifact": True,
-                "neverAskUserToBindManually": True,
+                "lookDiscoveryTool": "list_avatar_looks",
+                "assetUploadBridge": {
+                    "allowed": True,
+                    "transport": "heygen-v3-assets-only",
+                    "onlyForApprovedLocalArtifact": True,
+                },
             },
-            "bindExactVoice": {
+            "resolveExactVoice": {
                 "requiredVoiceId": voice_id,
                 "requiresCompletedPrivateClone": True,
-                "neverAskUserToBindManually": True,
+                "verificationTool": "get_voice",
             },
-            "enterExactScript": {
-                "text": script,
-                "sha256": script_sha256,
-                "rewriteAllowed": False,
-                "deliveryPrompt": delivery_prompt,
-            },
-            "setAvatarIvPortrait720p": {
-                "engine": "avatar_iv",
+            "buildStructuredPluginPayload": {
+                "script": script,
+                "scriptSha256": script_sha256,
+                "voiceId": voice_id,
                 "aspectRatio": "9:16",
                 "resolution": "720p",
+                "caption": False,
+                "motionPrompt": motion_prompt,
+                "rewriteAllowed": False,
             },
-            "disableExtras": {
-                "captions": False,
-                "music": False,
-                "bRoll": False,
-                "cameraMotion": False,
-            },
-            "applyMotionPrompt": {"prompt": motion_prompt},
             "verifyBeforeSpend": deepcopy(pre_submit["guards"]),
-            "clickGenerate": {
-                "actualBrowserClickRequired": True,
-                "clickCount": 1,
+            "submitPluginVideo": {
+                "allowedTools": [
+                    "create_video_from_avatar",
+                    "create_video_from_image",
+                ],
+                "videoAgentAllowedForExactScript": False,
+                "submitCount": 1,
                 "requiresAllPreSubmitGuards": True,
             },
             "verifyRealRender": {
                 "requiresStableVideoId": True,
                 "requiresBoundAvatar": True,
                 "requiresVideoResource": True,
-                "rejectBlueprintOrDraft": True,
-                "rejectThinkingAtZeroProgress": True,
-                "rejectVisibleGenerateButton": True,
+                "rejectMissingOrZeroProgressSession": True,
+                "rejectSuccessTextWithoutResource": True,
             },
             "pollExistingVideo": {
                 "reuseSubmittedVideoId": True,
@@ -241,6 +253,8 @@ def _validate_visual_plan(visual_plan):
         "camera",
         "aspect_ratio",
         "resolution",
+        "view_mode",
+        "subject_orientation",
     }
     if not required.issubset(visual_plan):
         raise ValueError("visual_plan is incomplete")
@@ -252,6 +266,9 @@ def _validate_visual_plan(visual_plan):
         raise ValueError("aspect ratio must be 9:16")
     if visual_plan["resolution"] != "720p":
         raise ValueError("resolution must be 720p")
+    _validate_subject_orientation(
+        visual_plan["view_mode"], visual_plan["subject_orientation"]
+    )
     job_look = visual_plan["job_look"]
     if not isinstance(job_look, dict) or job_look.get("candidate_count") != 1:
         raise ValueError("exactly one candidate image is allowed")
@@ -276,7 +293,7 @@ def _build_delivery_prompt(segments):
     )
 
 
-def _build_motion_prompt(beats):
+def _build_motion_prompt(beats, visual_plan):
     directions = []
     for beat in beats:
         face = beat.get("face", {})
@@ -286,18 +303,65 @@ def _build_motion_prompt(beats):
         directions.append(
             f"{beat.get('id')} ({beat.get('role')}): face {face.get('action')} "
             f"at {face.get('intensity')}; head {head.get('action')} at "
-            f"{head.get('intensity')} and return to center; perform one complete "
+            f"{head.get('intensity')} and return to the approved pose anchor; perform one complete "
             f"restrained hand gesture {hands.get('main_action')} with prepare, stroke, "
             f"retract, and cooldown, then return hands to neutral; body "
             f"{body.get('action')} at {body.get('intensity')}."
         )
+    view_mode = visual_plan["view_mode"]
+    if view_mode == "front":
+        gaze_direction = (
+            "Front-facing neutral pose with direct eye contact and natural irregular blinks. "
+            "All small head and gaze movements return to the front-facing anchor. "
+        )
+    else:
+        frame_direction = (
+            "frame left"
+            if view_mode == "three_quarter_left_45"
+            else "frame right"
+        )
+        gaze_direction = (
+            "Maintain the approved 45-degree three-quarter side pose: torso and head stay "
+            f"oriented toward {frame_direction}. Keep gaze on a natural off-camera conversation "
+            "point in the same direction; never twist the eyes back toward the lens or alternate "
+            "to direct eye contact. Natural irregular blinks and small head movements return to "
+            "the same 45-degree pose and gaze anchor. "
+        )
     return (
-        "Fixed camera and fixed framing. Direct eye contact, natural irregular blinks, "
-        "subtle micro-expressions, calm breathing, stable shoulders and torso. Head and "
+        "Fixed camera and fixed framing. "
+        + gaze_direction
+        + "Subtle micro-expressions, calm breathing, stable shoulders and torso. Head and "
         "hands move only with semantic emphasis; no repetitive swaying, zoom, cuts, or "
         "continuous gesturing. "
         + " ".join(directions)
     )
+
+
+def _validate_subject_orientation(view_mode, orientation):
+    expected = {
+        "front": {
+            "torso_yaw_degrees": 0,
+            "head_yaw_degrees": 0,
+            "turn_direction": "front",
+            "gaze_anchor": "camera_lens",
+        },
+        "three_quarter_left_45": {
+            "torso_yaw_degrees": 45,
+            "head_yaw_degrees": 45,
+            "turn_direction": "toward_frame_left",
+            "gaze_anchor": "off_camera_same_direction",
+        },
+        "three_quarter_right_45": {
+            "torso_yaw_degrees": 45,
+            "head_yaw_degrees": 45,
+            "turn_direction": "toward_frame_right",
+            "gaze_anchor": "off_camera_same_direction",
+        },
+    }
+    if view_mode not in expected:
+        raise ValueError(f"unknown view_mode: {view_mode}")
+    if orientation != expected[view_mode]:
+        raise ValueError("subject orientation must match the selected view mode")
 
 
 def _require_nonempty_text(value, label):
@@ -340,4 +404,4 @@ def _ensure_strict_json(value):
     try:
         json.dumps(value, ensure_ascii=False, allow_nan=False)
     except (TypeError, ValueError) as error:
-        raise ValueError("HeyGen web plan must be strict JSON") from error
+        raise ValueError("HeyGen plugin plan must be strict JSON") from error

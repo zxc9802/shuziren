@@ -5,13 +5,13 @@ from scripts.dhflow.content_director import ROLES
 
 
 _DELIVERY_BY_ROLE = {
-    "hook": {"speed": "brisk", "pause_before": "short", "pause_after": "short", "emphasis": "key"},
-    "question": {"speed": "measured", "pause_before": "medium", "pause_after": "medium", "emphasis": "question_core"},
-    "explanation": {"speed": "natural", "pause_before": "short", "pause_after": "short", "emphasis": "key"},
-    "warning": {"speed": "deliberate", "pause_before": "medium", "pause_after": "medium", "emphasis": "risk"},
-    "contrast": {"speed": "measured", "pause_before": "short", "pause_after": "short", "emphasis": "after_turn"},
-    "steps": {"speed": "natural", "pause_before": "short", "pause_after": "short", "emphasis": "ordinal"},
-    "conclusion": {"speed": "measured", "pause_before": "medium", "pause_after": "medium", "emphasis": "action"},
+    "hook": {"speed": "brisk", "pause_before": "short", "pause_after": "short", "emphasis": "key", "emotion": "surprised", "emotion_intensity": 0.78},
+    "question": {"speed": "measured", "pause_before": "medium", "pause_after": "medium", "emphasis": "question_core", "emotion": "surprised", "emotion_intensity": 0.72},
+    "explanation": {"speed": "natural", "pause_before": "short", "pause_after": "short", "emphasis": "key", "emotion": "calm", "emotion_intensity": 0.28},
+    "warning": {"speed": "deliberate", "pause_before": "medium", "pause_after": "medium", "emphasis": "risk", "emotion": "angry", "emotion_intensity": 0.82},
+    "contrast": {"speed": "measured", "pause_before": "short", "pause_after": "short", "emphasis": "after_turn", "emotion": "angry", "emotion_intensity": 0.74},
+    "steps": {"speed": "natural", "pause_before": "short", "pause_after": "short", "emphasis": "ordinal", "emotion": "calm", "emotion_intensity": 0.42},
+    "conclusion": {"speed": "measured", "pause_before": "medium", "pause_after": "medium", "emphasis": "action", "emotion": "happy", "emotion_intensity": 0.85},
 }
 _SPEED_LEVELS = {"deliberate": 0, "measured": 1, "natural": 2, "brisk": 3}
 _SPEED_BY_LEVEL = {level: speed for speed, level in _SPEED_LEVELS.items()}
@@ -32,7 +32,6 @@ def plan_voice(beats, persona: str) -> dict:
         _validate_beat(beat, index)
         delivery = dict(_DELIVERY_BY_ROLE[beat["role"]])
         delivery["speed"] = _normalized_speed(delivery["speed"], previous_level)
-        delivery["emotion"] = "calm"
         previous_level = _SPEED_LEVELS[delivery["speed"]]
         segments.append(
             {
@@ -42,7 +41,17 @@ def plan_voice(beats, persona: str) -> dict:
                 "delivery": delivery,
             }
         )
-    return {"persona": persona, "segments": segments}
+    intensities = [segment["delivery"]["emotion_intensity"] for segment in segments]
+    return {
+        "persona": persona,
+        "emotion_arc": {
+            "style": "amplified_but_controlled",
+            "minimum_intensity": min(intensities),
+            "maximum_intensity": max(intensities),
+            "maximum_allowed_intensity": 0.85,
+        },
+        "segments": segments,
+    }
 
 
 def _validate_beat(beat, index: int) -> None:

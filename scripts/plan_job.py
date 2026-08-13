@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write a deterministic paid-plan HeyGen browser job without network calls."""
+"""Write a deterministic structured HeyGen plugin job without network calls."""
 
 import argparse
 import json

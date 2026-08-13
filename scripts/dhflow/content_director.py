@@ -129,6 +129,45 @@ _CLOSING_QUOTES_AND_BRACKETS = frozenset("”’）】》〉」』)]}")
 _SEMANTIC_PUNCTUATION = "。！？!?；;.…，、：:\"'“”‘’()（）[]【】{}《》〈〉「」『』"
 
 
+_MANDARIN_TTS_RISK_RULES = (
+    (
+        "unnatural_daily_work_phrase",
+        re.compile(r"(?:不会\s*)?(?:把\s*AI\s*)?用进\s*(?:每天的|日常)?工作"),
+        "Rewrite with 用到 instead of 用进, such as 员工不知道怎样把 AI 用到日常工作中.",
+    ),
+    (
+        "pause_after_cognitive_verb",
+        re.compile(r"(?:不知道|不清楚|不明白)[，,]\s*(?:怎么|怎样|如何|哪些|什么)"),
+        "Remove punctuation between the cognitive verb and its complement.",
+    ),
+    (
+        "pause_inside_this_is",
+        re.compile(r"这[，,]\s*才是"),
+        "Keep 这才是 as one unbroken phrase.",
+    ),
+)
+
+
+def find_mandarin_tts_risks(text: str) -> list[dict]:
+    """Return observed Mandarin phrasing and punctuation risks for TTS."""
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("text must be a non-empty string")
+
+    risks = []
+    for code, pattern, guidance in _MANDARIN_TTS_RISK_RULES:
+        for match in pattern.finditer(text):
+            risks.append(
+                {
+                    "code": code,
+                    "text": match.group(0),
+                    "start": match.start(),
+                    "end": match.end(),
+                    "guidance": guidance,
+                }
+            )
+    return risks
+
+
 def analyze_script(text: str) -> list[dict]:
     """Split a non-empty script into lossless, semantically labelled beats."""
     if not isinstance(text, str) or not text.strip():

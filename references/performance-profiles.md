@@ -10,12 +10,21 @@
 - Keep the torso stable with only breathing, restrained weight shifts, a brief semantic lean, and a complete return to neutral.
 - Use one anchor hand and one lead hand when the source supports them. Keep the anchor visually stable; let the lead hand carry at most one small semantic action at a time.
 - Start from a neutral ready pose with clear mouth, jaw, eyes, eyewear, wrists, and available fingers. Preserve space around the head, shoulders, and lead hand.
+- For `front`, use the camera lens as the pose-and-gaze anchor. For either 45° side mode, keep torso and head on the approved 45° anchor and gaze at the same-direction off-camera conversation point; never twist only the eyes back to the lens.
 
 ### Channel timing
 
 Drive gaze/face, head, hands, and body from semantic beats and the measured HeyGen speech timeline. Stagger their starts and peaks so they do not activate or settle together. Prefer face or gaze first, then a small head response, then an optional hand stroke; body motion remains quiet.
 
-Blink irregularly and return gaze to camera after short natural offsets. Use small head adjustments and occasional phrase-ending nods. Never create periodic nodding, pendulum head sway, continuous waving, continuous shoulder motion, or motion merely to fill time. When no semantic trigger exists, hold a living but quiet idle.
+Blink irregularly and return gaze to the selected view-mode anchor after short natural offsets. Use small head adjustments and occasional phrase-ending nods. Never create periodic nodding, pendulum head sway, continuous waving, continuous shoulder motion, or motion merely to fill time. When no semantic trigger exists, hold a living but quiet idle.
+
+### Gaze and expression micro-performance
+
+- Keep attention on the selected conversation anchor most of the time. Allow only one or two brief downward thinking glances at natural contrast or sentence boundaries, then return smoothly to the anchor.
+- Coordinate every gaze change with a two-to-five-degree head adjustment, soft eyelid response, and subtle brow or facial response; never move the pupils alone.
+- Use complete irregular blinks, including an occasional slightly longer reflective blink at a phrase boundary. Never dart, flick, roll, drift, cross, or rapidly scan the eyes.
+- Use a mild brow narrow for contrast, a slight brow lift for the takeaway, and a composed neutral mouth with no forced continuous smile.
+- Keep these changes phrase-led and asymmetric. Do not synchronize every blink, brow change, head movement, and hand gesture to the same beat.
 
 ### Semantic candidates
 
