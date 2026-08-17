@@ -14,7 +14,6 @@ from scripts.dhflow.voice_director import plan_voice
 
 
 MIN_DURATION_SECONDS = 15.0
-MAX_DURATION_SECONDS = 90.0
 _SPOKEN_WORD = re.compile(r"[A-Za-z]+(?:['’-][A-Za-z]+)*")
 _ALLOWED_VISUAL_OVERRIDES = frozenset(
     {
@@ -31,6 +30,7 @@ _ALLOWED_VISUAL_OVERRIDES = frozenset(
         "camera",
         "safe_areas",
         "image_qa_requirements",
+        "view_mode",
     }
 )
 _ALLOWED_NESTED_OVERRIDES = {
@@ -64,13 +64,13 @@ _REGISTRY_OWNED_NAMES = frozenset(
 
 
 class DurationOutOfRangeError(ValueError):
-    """Raised with a rewrite-suggestion status when estimated speech is out of range."""
+    """Raised with a rewrite suggestion when estimated speech is too short."""
 
     def __init__(self, status: dict):
         self.status = status
         super().__init__(
-            f"estimated duration {status['estimated_duration_seconds']:.2f}s is outside "
-            f"{MIN_DURATION_SECONDS:.0f}-{MAX_DURATION_SECONDS:.0f}s"
+            f"estimated duration {status['estimated_duration_seconds']:.2f}s is below "
+            f"the {MIN_DURATION_SECONDS:.0f}s minimum"
         )
 
 
@@ -90,9 +90,12 @@ def _is_cjk_ideograph(character: str) -> bool:
 
 
 def build_job_plan(
-    script, registry, overrides, *, voice_alias=None, identity_alias=None
+    script, registry, overrides, *, voice_alias=None, identity_alias=None,
+    operating_mode="interactive",
 ) -> dict:
     """Build all reusable director plans without network calls or provider secrets."""
+    if operating_mode not in {"interactive", "auto"}:
+        raise ValueError("operating_mode must be interactive or auto")
     if not isinstance(overrides, dict):
         raise ValueError("overrides must be a dict")
     _validate_overrides(overrides)
@@ -107,6 +110,11 @@ def build_job_plan(
     profile = identity["performance_profile"]
     hand_topology = identity.get("hand_topology", "separated")
     ordinary_overrides = deepcopy(overrides)
+    if operating_mode == "auto":
+        view_mode = ordinary_overrides.get("view_mode", "front")
+        if view_mode != "front":
+            raise ValueError("auto mode requires front original_image1")
+        ordinary_overrides["view_mode"] = "front"
     visual_overrides = {
         "aspect_ratio": "9:16",
         "resolution": "720p",
@@ -124,6 +132,7 @@ def build_job_plan(
         beats,
         hand_topology=hand_topology,
         profile=profile,
+        view_mode=visual_plan["view_mode"],
     )
     heygen_app_plan = build_web_submission_plan(
         script=script,
@@ -141,9 +150,8 @@ def build_job_plan(
             "rewrite_suggestion": None,
             "voice_alias": assets["voice_alias"],
             "identity_alias": assets["image_alias"],
-            "image_generation_choice": "pending",
-            "selected_image_source": "pending",
-            "preview_choice": "pending",
+            **_task_route_fields(operating_mode),
+            "view_mode": visual_plan["view_mode"],
             "aspect_ratio": visual_plan["aspect_ratio"],
             "raw_review_resolution": visual_plan["resolution"],
             "overrides": ordinary_overrides,
@@ -159,6 +167,26 @@ def build_job_plan(
     except (TypeError, ValueError) as error:
         raise ValueError("job plan must be JSON-serializable") from error
     return plan
+
+
+def _task_route_fields(operating_mode: str) -> dict:
+    if operating_mode == "auto":
+        return {
+            "operating_mode": "auto",
+            "voice_provider": "minimax",
+            "material_route": "none",
+            "image_generation_choice": "use_original",
+            "selected_image_source": "original_image1",
+            "preview_choice": "disabled",
+        }
+    return {
+        "operating_mode": "interactive",
+        "voice_provider": "pending",
+        "material_route": "pending",
+        "image_generation_choice": "pending",
+        "selected_image_source": "pending",
+        "preview_choice": "pending",
+    }
 
 
 def _validate_overrides(overrides: dict) -> None:
@@ -217,26 +245,19 @@ def _reject_registry_owned_keys(value, path: str, active_containers=None) -> Non
 
 
 def _require_supported_duration(script: str, estimated_duration: float) -> None:
-    if MIN_DURATION_SECONDS <= estimated_duration <= MAX_DURATION_SECONDS:
+    if estimated_duration >= MIN_DURATION_SECONDS:
         return
-    too_short = estimated_duration < MIN_DURATION_SECONDS
     raise DurationOutOfRangeError(
         {
             "status": "needs_script_confirmation",
-            "reason": (
-                "estimated_duration_too_short"
-                if too_short
-                else "estimated_duration_too_long"
-            ),
+            "reason": "estimated_duration_too_short",
             "estimated_duration_seconds": estimated_duration,
             "allowed_duration_seconds": {
                 "minimum": MIN_DURATION_SECONDS,
-                "maximum": MAX_DURATION_SECONDS,
+                "maximum": None,
             },
             "rewrite_suggestion": (
                 "Expand the script before planning; the original script was not changed."
-                if too_short
-                else "Shorten the script before planning; the original script was not changed."
             ),
             "script": script,
         }

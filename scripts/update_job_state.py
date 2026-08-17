@@ -19,6 +19,7 @@ from migrate_job_state import (
     _read_source_snapshot,
 )
 from scripts.dhflow.state import (
+    record_auto_raw_approval,
     record_image_approval,
     record_image_candidate,
     record_image_choice,
@@ -29,6 +30,7 @@ from scripts.dhflow.state import (
     record_raw_approval,
     record_raw_video,
     record_render_started,
+    apply_auto_defaults,
     start_image_generation,
     transition,
     validate_state,
@@ -44,6 +46,8 @@ def parse_args(argv=None):
 
     transition_parser = events.add_parser("transition")
     transition_parser.add_argument("--to", required=True)
+
+    events.add_parser("apply-auto-defaults")
 
     image_choice = events.add_parser("image-choice")
     image_mode = image_choice.add_mutually_exclusive_group(required=True)
@@ -88,6 +92,10 @@ def parse_args(argv=None):
 
     approval = events.add_parser("approve-raw")
     _add_approval_arguments(approval)
+
+    auto_raw = events.add_parser("approve-raw-auto")
+    auto_raw.add_argument("--recorded-at", required=True)
+    auto_raw.add_argument("--evidence-ref", required=True)
     return parser.parse_args(argv)
 
 
@@ -124,6 +132,8 @@ def main(argv=None) -> int:
 def _apply_event(state, args):
     if args.event == "transition":
         return transition(state, args.to)
+    if args.event == "apply-auto-defaults":
+        return apply_auto_defaults(state)
     if args.event == "image-choice":
         chosen = record_image_choice(state, generate_new=args.generate_new)
         if args.generate_new:
@@ -183,6 +193,12 @@ def _apply_event(state, args):
         return record_raw_approval(
             state,
             reviewer=args.reviewer,
+            recorded_at=args.recorded_at,
+            evidence_ref=args.evidence_ref,
+        )
+    if args.event == "approve-raw-auto":
+        return record_auto_raw_approval(
+            state,
             recorded_at=args.recorded_at,
             evidence_ref=args.evidence_ref,
         )

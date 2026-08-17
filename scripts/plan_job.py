@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write a deterministic paid-plan HeyGen browser job without network calls."""
+"""Write a deterministic structured HeyGen plugin job without network calls."""
 
 import argparse
 import json
@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
 
 from scripts.dhflow.planner import DurationOutOfRangeError, build_job_plan
 from scripts.dhflow.registry import load_registry
-from scripts.dhflow.state import create_state
+from scripts.dhflow.state import apply_auto_defaults, create_state
 
 
 ARTIFACTS = {
@@ -39,6 +39,11 @@ def parse_args(argv=None):
     parser.add_argument("--voice-alias", help="Authorized registry voice alias")
     parser.add_argument("--identity-alias", help="Authorized registry identity alias")
     parser.add_argument(
+        "--auto",
+        action="store_true",
+        help="Lock full-auto defaults: MiniMax, no company material, original_image1, no preview",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Assert network-free planning mode; this CLI never performs external actions",
@@ -59,8 +64,9 @@ def main(argv=None) -> int:
             overrides,
             voice_alias=args.voice_alias,
             identity_alias=args.identity_alias,
+            operating_mode="auto" if args.auto else "interactive",
         )
-        _write_job(Path(args.out), plan)
+        _write_job(Path(args.out), plan, auto=args.auto)
     except DurationOutOfRangeError as error:
         print(json.dumps(error.status, ensure_ascii=False), file=sys.stderr)
         return 2
@@ -87,10 +93,12 @@ def _load_overrides(path):
     return overrides
 
 
-def _write_job(output_path: Path, plan: dict) -> None:
+def _write_job(output_path: Path, plan: dict, *, auto=False) -> None:
     if output_path.exists():
         raise ValueError(f"refusing to overwrite existing job directory: {output_path}")
     state = create_state(status="planned")
+    if auto:
+        state = apply_auto_defaults(state)
     documents = {
         filename: plan[key]
         for filename, key in ARTIFACTS.items()

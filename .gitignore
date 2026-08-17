@@ -1,5 +1,6 @@
 .env
 .env.*
+!.env.example
 work/
 outputs/
 inputs/
@@ -12,6 +13,7 @@ inputs/
 *.jpeg
 *.png
 *.webp
+!assets/side-image1.jpg
 job-state.json
 *.log
 .DS_Store

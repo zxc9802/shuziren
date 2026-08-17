@@ -122,6 +122,12 @@ _MIGRATION_BASES = frozenset({"canonical-json", "exact-source-bytes"})
 _PRESERVATION_STRATEGIES = frozenset(
     {"caller-managed", "original-source", "exact-byte-backup"}
 )
+AUTO_REVIEWER = "auto-mode"
+AUTO_JOB_ROUTE = {
+    "operating_mode": "auto",
+    "voice_provider": "minimax",
+    "material_route": "none",
+}
 
 
 def validate_state(state) -> None:
@@ -325,6 +331,7 @@ def record_image_approval(state, *, reviewer, recorded_at, evidence_ref):
     if not isinstance(candidate, dict):
         raise ValueError("candidate image is required before approval")
     _validate_artifacts({"image_candidate": candidate})
+    _reject_auto_reviewer(reviewer)
     _require_evidence_text(reviewer, "image approval evidence")
     _require_approval_timestamp(recorded_at, label="image approval")
     _require_opaque_reference(evidence_ref, "image approval reference")
@@ -365,6 +372,24 @@ def record_preview_choice(state, *, enabled):
     result["status"] = "preview_choice_recorded"
     validate_state(result)
     return result
+
+
+def apply_auto_defaults(state):
+    """Lock auto-mode route defaults and skip image/preview confirmation gates."""
+    validate_state(state)
+    if state["status"] == "preview_choice_recorded":
+        _require_matching_auto_defaults(state)
+        return deepcopy(state)
+    if state["status"] != "planned":
+        raise ValueError("event requires planned or preview_choice_recorded status")
+    result = deepcopy(state)
+    assets = result.setdefault("assets", {})
+    _require_matching_or_absent(assets, "job_route", AUTO_JOB_ROUTE, "job route")
+    assets["job_route"] = dict(AUTO_JOB_ROUTE)
+    validate_state(result)
+    chosen = record_image_choice(result, generate_new=False)
+    selected = record_original_image_selection(chosen)
+    return record_preview_choice(selected, enabled=False)
 
 
 def record_render_started(state, *, kind, evidence, video_id=None):
@@ -461,6 +486,7 @@ def record_preview_approval(state, *, reviewer, recorded_at, evidence_ref):
     )
     preview = _require_qa_passed_preview(state)
     video_id = state["providers"]["heygen"]["preview_video_id"]
+    _reject_auto_reviewer(reviewer)
     _require_evidence_text(reviewer, "preview approval evidence")
     _require_approval_timestamp(recorded_at, label="preview approval")
     _require_opaque_reference(evidence_ref, "preview approval reference")
@@ -529,6 +555,8 @@ def record_raw_approval(state, *, reviewer, recorded_at, evidence_ref):
         state, "awaiting_raw_approval", "awaiting_raw_approval"
     )
     _require_qa_passed_raw(state)
+    if reviewer == AUTO_REVIEWER:
+        _require_auto_job_route(state)
     raw_video = state["artifacts"]["raw_video"]
     video_id = state["providers"]["heygen"]["video_id"]
     expected = {
@@ -549,6 +577,20 @@ def record_raw_approval(state, *, reviewer, recorded_at, evidence_ref):
         approval[field] = value
     validate_state(result)
     return result
+
+
+def record_auto_raw_approval(state, *, recorded_at, evidence_ref):
+    """Bind QA-passed full-raw approval for an auto-mode job."""
+    validate_state(state)
+    _require_auto_job_route(state)
+    if state["status"] == "raw_qa":
+        state = transition(state, "awaiting_raw_approval")
+    return record_raw_approval(
+        state,
+        reviewer=AUTO_REVIEWER,
+        recorded_at=recorded_at,
+        evidence_ref=evidence_ref,
+    )
 
 
 def migrate_v1(old, *, source_bytes=None, legacy_preservation="caller-managed"):
@@ -803,6 +845,34 @@ def _require_recording_status(state, predecessor, result_status) -> None:
         )
 
 
+def _reject_auto_reviewer(reviewer) -> None:
+    if reviewer == AUTO_REVIEWER:
+        raise ValueError("auto-mode reviewer is only valid for auto raw approval")
+
+
+def _require_auto_job_route(state) -> None:
+    assets = state.get("assets")
+    route = assets.get("job_route") if isinstance(assets, dict) else None
+    if not isinstance(route, dict) or route.get("operating_mode") != "auto":
+        raise ValueError("auto raw approval requires operating_mode=auto")
+    _validate_assets({"job_route": route})
+    if route != AUTO_JOB_ROUTE:
+        raise ValueError("conflicting job route")
+
+
+def _require_matching_auto_defaults(state) -> None:
+    _require_auto_job_route(state)
+    expected_image = {
+        "identity_master_alias": "image1",
+        "generate_new": False,
+        "source": "original_image1",
+    }
+    if _require_job_image(state) != expected_image:
+        raise ValueError("conflicting auto image selection")
+    if _preview_requested(state) is not False:
+        raise ValueError("auto mode requires preview_requested=False")
+
+
 def _require_matching_or_absent(container, field, expected, label) -> None:
     if field in container and container[field] != expected:
         raise ValueError(f"conflicting {label}")
@@ -933,6 +1003,7 @@ def _validate_assets(assets) -> None:
         "voice": {"voice_id", "alias"},
         "identity": {"avatar_group_id", "avatar_look_id", "alias"},
         "job_image": {"identity_master_alias", "generate_new", "source"},
+        "job_route": {"operating_mode", "voice_provider", "material_route"},
     }
     for asset_type, details in assets.items():
         if asset_type not in allowed or not isinstance(details, dict):
@@ -951,6 +1022,14 @@ def _validate_assets(assets) -> None:
                 "generated_candidate",
             }:
                 raise ValueError("unsupported job image source")
+            continue
+        if asset_type == "job_route":
+            if details["operating_mode"] not in {"interactive", "auto"}:
+                raise ValueError("operating_mode must be interactive or auto")
+            if details["voice_provider"] not in {"minimax", "heygen"}:
+                raise ValueError("voice_provider must be minimax or heygen")
+            if details["material_route"] not in {"none", "company"}:
+                raise ValueError("material_route must be none or company")
             continue
         for field, value in details.items():
             _require_provider_id(value, "asset ID")

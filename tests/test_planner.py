@@ -157,6 +157,9 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual("pending", plan["task"]["image_generation_choice"])
         self.assertEqual("pending", plan["task"]["selected_image_source"])
         self.assertEqual("pending", plan["task"]["preview_choice"])
+        self.assertEqual("interactive", plan["task"]["operating_mode"])
+        self.assertEqual("pending", plan["task"]["voice_provider"])
+        self.assertEqual("pending", plan["task"]["material_route"])
         self.assertEqual("image1", plan["visual_plan"]["identity_master_alias"])
         self.assertEqual("720p", plan["task"]["raw_review_resolution"])
         self.assertEqual(script, plan["task"]["script"])
@@ -445,6 +448,7 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(0, completed.returncode, completed.stderr)
         self.assertIn("--voice-alias", completed.stdout)
         self.assertIn("--identity-alias", completed.stdout)
+        self.assertIn("--auto", completed.stdout)
 
     def test_cli_duration_error_does_not_create_partial_job(self):
         with tempfile.TemporaryDirectory() as temp_dir:

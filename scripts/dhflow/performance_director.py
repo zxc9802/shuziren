@@ -14,6 +14,9 @@ ROLE_ACTIONS = {
 
 _PROFILE = "business-human-1"
 HAND_TOPOLOGIES = frozenset({"separated", "one_visible", "overlapping", "not_visible"})
+VIEW_MODES = frozenset(
+    {"front", "three_quarter_left_45", "three_quarter_right_45"}
+)
 _CHANNEL_ACTIONS = {
     "hook": {
         "face": "direct_gaze_brighten",
@@ -68,9 +71,10 @@ def plan_performance(
     beats: list[dict],
     hand_topology: str,
     profile: str = _PROFILE,
+    view_mode: str = "front",
 ) -> dict:
     """Build a deterministic four-channel performance plan from semantic beats."""
-    _validate_inputs(beats, hand_topology, profile)
+    _validate_inputs(beats, hand_topology, profile, view_mode)
     expression_intensity = "moderate" if hand_topology == "overlapping" else "subtle"
     planned_beats = []
     previous_hand_action = None
@@ -87,14 +91,20 @@ def plan_performance(
                 "role": beat["role"],
                 "face": {
                     "enabled": True,
-                    "action": actions["face"],
+                    "action": _face_action(actions["face"], view_mode),
                     "intensity": expression_intensity,
+                    "gaze_anchor": (
+                        "camera_lens"
+                        if view_mode == "front"
+                        else "off_camera_same_direction"
+                    ),
                 },
                 "head": {
                     "enabled": True,
                     "action": actions["head"],
                     "intensity": expression_intensity,
-                    "returns_to_center": True,
+                    "returns_to_center": view_mode == "front",
+                    "returns_to_view_anchor": True,
                 },
                 "hands": _plan_hands(main_action, beat["role"], hand_topology),
                 "body": {
@@ -106,14 +116,21 @@ def plan_performance(
             }
         )
 
-    return {"profile": profile, "hand_topology": hand_topology, "beats": planned_beats}
+    return {
+        "profile": profile,
+        "hand_topology": hand_topology,
+        "view_mode": view_mode,
+        "beats": planned_beats,
+    }
 
 
-def _validate_inputs(beats, hand_topology, profile) -> None:
+def _validate_inputs(beats, hand_topology, profile, view_mode) -> None:
     if not isinstance(profile, str) or profile != _PROFILE:
         raise ValueError(f"unknown profile: {profile}")
     if not isinstance(hand_topology, str) or hand_topology not in HAND_TOPOLOGIES:
         raise ValueError(f"unknown hand_topology: {hand_topology}")
+    if not isinstance(view_mode, str) or view_mode not in VIEW_MODES:
+        raise ValueError(f"unknown view_mode: {view_mode}")
     if not isinstance(beats, list) or not beats:
         raise ValueError("beats must be a non-empty list")
     for index, beat in enumerate(beats):
@@ -126,6 +143,12 @@ def _validate_inputs(beats, hand_topology, profile) -> None:
                 raise ValueError(f"{prefix}.{field} must be a non-empty string")
         if beat["role"] not in ROLES:
             raise ValueError(f"{prefix}.role is unknown: {beat['role']}")
+
+
+def _face_action(action: str, view_mode: str) -> str:
+    if view_mode != "front" and action == "direct_gaze_brighten":
+        return "off_camera_gaze_brighten"
+    return action
 
 
 def _choose_hand_action(candidates, previous_action, hand_topology):
