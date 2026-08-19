@@ -94,7 +94,7 @@ class AutoModeContractTests(unittest.TestCase):
         self.assertIn("operating_mode", skill)
         self.assertIn("全自动", skill)
         self.assertIn("Auto job order", skill)
-        self.assertIn("这次配音使用 MiniMax，还是 HeyGen？", skill)
+        self.assertIn("这次配音使用 MiniMax，HeyGen，还是 IndexTTS-2？", skill)
         self.assertIn("这个任务是否需要加入公司素材？", skill)
         self.assertIn("minimax", auto)
         self.assertIn("original_image1", auto)

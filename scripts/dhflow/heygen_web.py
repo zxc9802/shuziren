@@ -6,14 +6,25 @@ import math
 import re
 from copy import deepcopy
 
+from scripts.dhflow.performance_director import (
+    PERFORMANCE_PRIMITIVE_LIBRARY_ID,
+    PERFORMANCE_PRIMITIVE_LIBRARY_SOURCE,
+    PERFORMANCE_REFERENCE_ID,
+    PERFORMANCE_REFERENCE_SHA256,
+    load_performance_primitive_library,
+    primitive_prompt_fragments,
+)
+
 
 HEYGEN_WEB_TRANSPORT = "heygen-plugin-structured"
 
 _OPAQUE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,255}\Z")
 _ACTION_ORDER = (
+    "verifyPerformanceReference",
     "inspectConnectedHeyGenAccount",
     "resolveOrUploadApprovedLook",
     "resolveExactVoice",
+    "buildPerformanceBeatMap",
     "buildStructuredPluginPayload",
     "verifyBeforeSpend",
     "submitPluginVideo",
@@ -41,6 +52,9 @@ def build_web_submission_plan(
     voice_segments = _require_sequence(voice_plan, "segments", "voice_plan")
     performance_beats = _require_sequence(
         performance_plan, "beats", "performance_plan"
+    )
+    performance_reference, primitive_library = _require_performance_system(
+        performance_plan
     )
     _require_exact_script(script, voice_segments, "voice_plan")
     _require_exact_script(script, performance_beats, "performance_plan")
@@ -75,6 +89,17 @@ def build_web_submission_plan(
         "bRollEnabled": False,
         "cameraMotionEnabled": False,
         "motionPrompt": motion_prompt,
+        "performanceReference": performance_reference,
+        "performancePrimitiveLibrary": primitive_library,
+        "performanceBeatMapContract": {
+            "artifact": "performance-beat-map.json",
+            "timingScope": "planning_and_rendered_qa_only",
+            "providerFrameAccurateTimingClaimed": False,
+            "exactReferenceTimelineCopyForbidden": True,
+            "requiredBeforeSubmitWhen": "voice_provider=minimax|indextts",
+            "requiredAfterRenderWhen": "voice_provider=heygen",
+            "mustBindExactAudioSha256": True,
+        },
         "previewContract": {
             "targetSeconds": 15,
             "useApprovedOpeningExcerpt": True,
@@ -97,6 +122,10 @@ def build_web_submission_plan(
             "videoAgentRewriteForbidden": True,
             "durationMustMatchCompleteScript": True,
             "motionPromptMustBePresent": True,
+            "motionPromptMustDescribeLivingIdle": True,
+            "performanceReferenceMustBeVerified": True,
+            "performancePrimitiveLibraryMustBeVerified": True,
+            "minimaxAudioPerformanceBeatMapRequired": True,
             "extrasMustBeDisabled": True,
             "cameraMustRemainLocked": True,
             "settingsMustMatch": True,
@@ -111,6 +140,13 @@ def build_web_submission_plan(
         "actionOrder": list(_ACTION_ORDER),
         "preSubmit": pre_submit,
         "actions": {
+            "verifyPerformanceReference": {
+                "tool": "python3 scripts/verify_performance_reference.py --json",
+                "requiredReferenceId": PERFORMANCE_REFERENCE_ID,
+                "requiredSha256": PERFORMANCE_REFERENCE_SHA256,
+                "localOnly": True,
+                "providerUploadForbidden": True,
+            },
             "inspectConnectedHeyGenAccount": {
                 "tool": "get_current_user",
                 "requireConnectedAccount": True,
@@ -131,6 +167,14 @@ def build_web_submission_plan(
                 "requiredVoiceId": voice_id,
                 "requiresCompletedPrivateClone": True,
                 "verificationTool": "get_voice",
+            },
+            "buildPerformanceBeatMap": {
+                "tool": "python3 scripts/build_performance_beat_map.py --voice-plan <voice-plan.json> --performance-plan <performance-plan.json> --timings <final-audio-segments.json> --audio <exact-final-audio> --out <performance-beat-map.json>",
+                "requiredBeforeSubmitWhen": "voice_provider=minimax|indextts",
+                "requiredAfterRenderWhen": "voice_provider=heygen",
+                "timingScope": "planning_and_rendered_qa_only",
+                "providerFrameAccurateTimingClaimed": False,
+                "mustBindExactAudioSha256": True,
             },
             "buildStructuredPluginPayload": {
                 "script": script,
@@ -293,6 +337,12 @@ def _build_delivery_prompt(segments):
     )
 
 
+def _humanize_cue(token, fallback="natural"):
+    if not isinstance(token, str) or not token.strip():
+        return fallback
+    return token.strip().replace("_", " ")
+
+
 def _build_motion_prompt(beats, visual_plan):
     directions = []
     for beat in beats:
@@ -300,14 +350,25 @@ def _build_motion_prompt(beats, visual_plan):
         head = beat.get("head", {})
         hands = beat.get("hands", {})
         body = beat.get("body", {})
-        directions.append(
-            f"{beat.get('id')} ({beat.get('role')}): face {face.get('action')} "
-            f"at {face.get('intensity')}; head {head.get('action')} at "
-            f"{head.get('intensity')} and return to the approved pose anchor; perform one complete "
-            f"restrained hand gesture {hands.get('main_action')} with prepare, stroke, "
-            f"retract, and cooldown, then return hands to neutral; body "
-            f"{body.get('action')} at {body.get('intensity')}."
+        primitive_prompt_fragments(beat.get("primitive_chain"))
+        line = (
+            f"{beat.get('id')} ({beat.get('role')}): the face leads with a "
+            f"{_humanize_cue(face.get('intensity'), 'subtle')} "
+            f"{_humanize_cue(face.get('action'))} cue; the head answers with a small "
+            f"{_humanize_cue(head.get('action'))} that rides a slight neck-and-shoulder "
+            "response, then settles back to the pose anchor"
         )
+        if hands.get("enabled") and hands.get("main_action"):
+            line += (
+                f"; one compact unhurried {_humanize_cue(hands.get('main_action'))} "
+                "gesture near the torso completes prepare, stroke, retract, and "
+                "cooldown before the hands come to rest"
+            )
+        line += (
+            f"; the body stays quietly alive with "
+            f"{_humanize_cue(body.get('action'), 'steady breathing')}."
+        )
+        directions.append(line)
     view_mode = visual_plan["view_mode"]
     if view_mode == "front":
         gaze_direction = (
@@ -327,14 +388,107 @@ def _build_motion_prompt(beats, visual_plan):
             "to direct eye contact. Natural irregular blinks and small head movements return to "
             "the same 45-degree pose and gaze anchor. "
         )
+    living_idle = (
+        "The subject is a real person mid-conversation, relaxed and engaged, never a "
+        "statue. Quiet breathing stays visible as a gentle chest-and-shoulder rise and "
+        "fall for the whole take. Between gestures the body holds a living idle: the "
+        "head keeps a barely visible one-to-two-degree drift with small resettles, "
+        "resting hands and fingers keep natural micro-relaxation, and blinks stay "
+        "irregular with an occasional slightly longer reflective blink. Speech energy "
+        "reaches the whole face: the jaw opens naturally on open vowels, cheeks and "
+        "brows respond, and small head accents land on stressed syllables while phrase "
+        "endings settle softly. Every head turn or nod rides on a slight neck-and-"
+        "shoulder response absorbed by the torso, so the head never rotates on a frozen "
+        "body. Channels stay staggered - face first, then head, then an optional hand "
+        "stroke - and never peak together. A hand stroke never moves in isolation: the "
+        "same phrase first changes the face, then produces a small head, neck, and shoulder "
+        "response with a restrained torso counterweight. "
+    )
+    stability = (
+        "Keep gestures compact, unhurried, and forearm-led near the torso. Keep facial "
+        "geometry, eyewear, hairline, clothing, background, and framing locked and "
+        "stable throughout motion. Avoid: fixed-period repetition, pendulum sway, "
+        "continuous gesturing, camera motion, zoom, cuts, frozen statue idle, lip-only "
+        "articulation on a static face, melting or warped hands, and identity drift."
+    )
     return (
         "Fixed camera and fixed framing. "
         + gaze_direction
-        + "Subtle micro-expressions, calm breathing, stable shoulders and torso. Head and "
-        "hands move only with semantic emphasis; no repetitive swaying, zoom, cuts, or "
-        "continuous gesturing. "
+        + living_idle
         + " ".join(directions)
+        + " "
+        + stability
     )
+
+
+def _require_performance_system(performance_plan):
+    reference = performance_plan.get("reference")
+    if type(reference) is not dict:
+        raise ValueError("performance_plan.reference is required")
+    expected = {
+        "id": PERFORMANCE_REFERENCE_ID,
+        "source_sha256": PERFORMANCE_REFERENCE_SHA256,
+        "scope": "performance_only",
+        "verification_required_before_spend": True,
+        "provider_upload_forbidden": True,
+    }
+    for field, value in expected.items():
+        if reference.get(field) != value or type(reference.get(field)) is not type(value):
+            raise ValueError(f"performance_plan.reference.{field} is invalid")
+    manifest = reference.get("manifest")
+    if not isinstance(manifest, str) or not manifest.strip():
+        raise ValueError("performance_plan.reference.manifest is required")
+
+    contract = performance_plan.get("motion_contract")
+    if type(contract) is not dict:
+        raise ValueError("performance_plan.motion_contract is required")
+    required_contract = (
+        "whole_person_speaks",
+        "hands_must_not_move_alone",
+        "face_head_shoulders_torso_respond_to_speech",
+        "channel_peaks_staggered",
+        "repetitive_dead_silence_restarts_rejected",
+    )
+    for field in required_contract:
+        if contract.get(field) is not True:
+            raise ValueError(f"performance_plan.motion_contract.{field} must be true")
+
+    primitive_library = performance_plan.get("primitive_library")
+    if type(primitive_library) is not dict:
+        raise ValueError("performance_plan.primitive_library is required")
+    current_library, current_sha256 = load_performance_primitive_library()
+    expected_library = {
+        "id": PERFORMANCE_PRIMITIVE_LIBRARY_ID,
+        "version": current_library["schema_version"],
+        "source": PERFORMANCE_PRIMITIVE_LIBRARY_SOURCE,
+        "source_sha256": current_sha256,
+        "provider_timing_contract": "semantic_relative_only",
+        "frame_accurate_timing_claimed": False,
+        "exact_reference_timeline_copy_forbidden": True,
+    }
+    for field, value in expected_library.items():
+        if (
+            primitive_library.get(field) != value
+            or type(primitive_library.get(field)) is not type(value)
+        ):
+            raise ValueError(f"performance_plan.primitive_library.{field} is invalid")
+
+    beats = performance_plan.get("beats")
+    if not isinstance(beats, list) or not beats:
+        raise ValueError("performance_plan.beats is required")
+    for index, beat in enumerate(beats):
+        if not isinstance(beat, dict):
+            raise ValueError(f"performance_plan.beats[{index}] is invalid")
+        chain = beat.get("primitive_chain")
+        primitive_prompt_fragments(chain)
+        hands = beat.get("hands")
+        if not isinstance(hands, dict):
+            raise ValueError(f"performance_plan.beats[{index}].hands is invalid")
+        if hands.get("enabled") is True and "hand_stroke" not in chain:
+            raise ValueError("enabled hands require the hand_stroke primitive")
+        if hands.get("enabled") is False and "hand_stroke" in chain:
+            raise ValueError("disabled hands cannot use the hand_stroke primitive")
+    return deepcopy(reference), deepcopy(primitive_library)
 
 
 def _validate_subject_orientation(view_mode, orientation):

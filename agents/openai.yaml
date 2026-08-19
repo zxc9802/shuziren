@@ -1,7 +1,7 @@
 interface:
   display_name: "数字人skill"
-  short_description: "数字人口播：MiniMax/HeyGen配音、形象与ChatCut剪辑"
-  default_prompt: "Use $rachel-digital-human-production（数字人skill）执行当前数字人口播任务。默认交互：授权后先询问 MiniMax 还是 HeyGen 配音，再完成素材、形象、预览、原片审批与 ChatCut。若用户要求全自动，则按 references/auto-mode.md 用传入文案直接出片，不再中途确认。"
+  short_description: "数字人口播：MiniMax/HeyGen/IndexTTS-2配音、形象与ChatCut剪辑"
+  default_prompt: "Use $rachel-digital-human-production（数字人skill）执行当前数字人口播任务。默认交互：授权后先询问 MiniMax、HeyGen 还是 IndexTTS-2 配音，再完成素材、形象、预览、原片审批与 ChatCut。若用户要求全自动，则按 references/auto-mode.md 用传入文案直接出片，不再中途确认。"
 
 policy:
   allow_implicit_invocation: false

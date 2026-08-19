@@ -51,6 +51,6 @@ Default for an approximately 90-second material-route video: one or two selected
 
 ## ChatCut placement
 
-Use word-level transcript timestamps. Insert each asset at the start of its grounded sentence and return to the approved talking head when that explanation ends. Real clips normally use the strongest 2-6 seconds. Static stills normally use 3-5 seconds with restrained push or pan motion.
+Use word-level timestamps from the final post-speed transcript, only after the A-roll approval/auto-QA gate and captions. Insert each asset at the start of its grounded sentence and return to the approved talking head when that explanation ends. Real clips normally use the strongest 2-6 seconds. Static stills normally use 3-5 seconds with restrained push or pan motion. Preserve the A-roll sound and mute or omit B-roll source audio unless the user explicitly requests it.
 
-Do not cover essential subtitles or product UI. Preserve the approved raw, identity, lip sync, and voice. Continue the standard ChatCut package: approximately 1.1x pacing, obvious-pause compression, dynamic captions, restrained business-tech flower text, original no-vocal BGM, and voice ducking.
+Do not cover essential subtitles or product UI. Preserve the approved raw, identity, lip sync, and voice. Place approved company material before writing `mg-plan.json`, so MG fills only uncovered explanation beats. Continue the standard ChatCut package with restrained business-tech flower text, speech-led sound effects, original no-vocal BGM, voice ducking, and final `smooth_audio`. Read `references/chatcut-editing.md` and `references/chatcut-mg.md`. Do not overlap an MG with a company B-roll or supporting still on the same span.

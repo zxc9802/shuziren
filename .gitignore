@@ -13,7 +13,6 @@ inputs/
 *.jpeg
 *.png
 *.webp
-!assets/side-image1.jpg
 job-state.json
 *.log
 .DS_Store

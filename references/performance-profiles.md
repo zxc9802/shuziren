@@ -2,12 +2,38 @@
 
 ## `business-human-1`
 
-`business-human-1` captures reusable behavior observed in the user-approved Douyin business talking-head reference. It is a semantic performance language, not a copied timeline, outfit, background, or fixed prompt.
+`business-human-1` is bound to the user-approved local reference
+`business-human-123-v1`. Read `references/performance-reference-123.json` and
+run `python3 scripts/verify_performance_reference.py --json` before every live
+preview or full-raw submission. A missing file or SHA-256 mismatch is a hard
+pre-spend stop.
+
+The reference is a semantic performance language, not a copied person or
+timeline. Learn only whole-person speech coupling, living idle, asymmetrical
+gesture cycles, gaze/eyelid variation, and continuous total-track rhythm. Never
+copy its identity, voice, wording, wardrobe, background, captions, horizontal
+composition, or exact gesture timestamps. Keep the reference video local; never
+upload it to HeyGen, MiniMax, an image model, a tunnel, or a public deliverable.
+
+The manifest's motion ratios and audio measurements are comparison evidence,
+not provider targets. Do not command a fixed amount of head, torso, or hand
+motion. Use them only to catch the failure pattern seen in the weaker raw: hands
+moving while the face, head, neck, shoulders, and torso remain disconnected.
+The goal is not more motion everywhere. The goal is one speech-led cause moving
+through the whole person with staggered peaks and a complete return to rest.
+
+Read `references/performance-system.md`. Build every beat from the exact
+versioned primitive library rather than inventing an unconstrained effect list.
+On the MiniMax route, bind entry/hold/settle QA checkpoints to the measured
+boundaries of the exact final audio. Those timestamps are for planning and
+rendered inspection only; HeyGen receives a concise semantic-relative prompt.
 
 ### Base posture and camera
 
 - Use a locked camera and stable framing. Do not zoom, pan, tilt, reframe, or add camera shake.
 - Keep the torso stable with only breathing, restrained weight shifts, a brief semantic lean, and a complete return to neutral.
+- Hold the living idle floor from `references/realism.md` at all times: visible quiet breathing at the chest and shoulders, a barely visible one-to-two-degree head drift with small resettles, and micro-relaxation in resting hands. Restraint means small and motivated, never frozen; a statue idle is a stiffness defect.
+- Let every head turn or nod ride on a slight neck-and-shoulder response absorbed by the torso. Never rotate the head on a frozen body like a turret.
 - Use one anchor hand and one lead hand when the source supports them. Keep the anchor visually stable; let the lead hand carry at most one small semantic action at a time.
 - Start from a neutral ready pose with clear mouth, jaw, eyes, eyewear, wrists, and available fingers. Preserve space around the head, shoulders, and lead hand.
 - For `front`, use the camera lens as the pose-and-gaze anchor. For either 45° side mode, keep torso and head on the approved 45° anchor and gaze at the same-direction off-camera conversation point; never twist only the eyes back to the lens.
@@ -16,7 +42,9 @@
 
 Drive gaze/face, head, hands, and body from semantic beats and the measured HeyGen speech timeline. Stagger their starts and peaks so they do not activate or settle together. Prefer face or gaze first, then a small head response, then an optional hand stroke; body motion remains quiet.
 
-Blink irregularly and return gaze to the selected view-mode anchor after short natural offsets. Use small head adjustments and occasional phrase-ending nods. Never create periodic nodding, pendulum head sway, continuous waving, continuous shoulder motion, or motion merely to fill time. When no semantic trigger exists, hold a living but quiet idle.
+Blink irregularly and return gaze to the selected view-mode anchor after short natural offsets. Use small head adjustments and occasional phrase-ending nods. Never create periodic nodding, pendulum head sway, continuous waving, continuous shoulder motion, or motion merely to fill time. When no semantic trigger exists, hold a living but quiet idle: it still breathes, drifts, and blinks, and during long explanatory stretches the idle floor stays active so restraint never collapses into freezing.
+
+Let head and brow micro-accents track the prosody of the actual narration — a slight nod or brow lift on stressed syllables, a soft settle at clause ends — and let speech energy reach the jaw, cheeks, and nasolabial folds rather than the lips alone.
 
 ### Gaze and expression micro-performance
 

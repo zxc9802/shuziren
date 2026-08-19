@@ -12,7 +12,7 @@ Apply these defaults to future jobs unless the user explicitly overrides them fo
 
 - Produce a platform-neutral vertical master suitable for common short-video channels.
 - Use portrait `9:16`, keep important face/body content inside a conservative center safe area, and avoid platform-specific watermarks, handles, stickers, or calls to action unless requested.
-- Keep the raw-generation contract unchanged: Avatar IV, `720P`, fixed camera, captions/music/B-roll/transitions off. Add captions, branding, BGM, cover, or platform-specific packaging only after the exact full raw is approved.
+- Keep the raw-generation contract unchanged: Avatar IV, `720P`, fixed camera, captions/music/B-roll/MG/transitions off. Add captions, script-grounded MG, branding, BGM, cover, or platform-specific packaging only after the exact full raw is approved.
 - Follow applicable AI-generated-content disclosure requirements when publishing. “General distribution” does not waive platform policy checks.
 
 ## Generated job-look defaults
@@ -43,4 +43,4 @@ Apply these defaults whenever the user chooses to generate a new boss image, unl
 - Treat the image as a private authorized local asset. Never publish or package it with a publicly shared copy of this skill.
 - Use it as the identity master and the default job look only. A generated job look may change wardrobe, pose, background, lighting, framing, and props, but must preserve face shape, features, apparent age, skin tone, short black hairstyle, black rectangular eyewear, body type, and recognizability.
 
-The stable MiniMax narration default is `huangxu1`. Every synthesis also requires a script-specific `voice-plan.json` whose segments preserve the approved text losslessly and vary emotion and emotion intensity by semantic beat. These defaults do not supply a HeyGen `voice1` ID or `image1` avatar-group ID. Resolve those stable private HeyGen account records at runtime, and stop if they cannot be verified.
+The stable MiniMax narration default is `huangxu1`. The IndexTTS-2 option uses the authorized speaker-reference URL in `.env` as `indextts_voice1`. Every synthesis also requires a script-specific `voice-plan.json` whose segments preserve the approved text losslessly and vary emotion and emotion intensity by semantic beat. These defaults do not supply a HeyGen `voice1` ID or `image1` avatar-group ID. Resolve those stable private HeyGen account records at runtime, and stop if they cannot be verified.
