@@ -2,6 +2,28 @@
 
 Read this reference immediately before every live preview or full-raw submission.
 
+## Performance reference preflight
+
+Run `python3 scripts/verify_performance_reference.py --json` from the skill root
+and require the exact `business-human-123-v1` ID and SHA-256 before any provider
+action. Require the same binding in `performance-plan.json`. The reference video
+stays local and performance-only; never upload it or copy its identity, voice,
+wording, wardrobe, background, captions, aspect ratio, or exact timestamps.
+
+Use the reference to enforce one speech-led cause across face, head, neck,
+shoulders, hands, and torso. Reject hands moving on an otherwise frozen person,
+even when hand anatomy passes. Keep channel peaks staggered and return every
+gesture fully to a living idle. Treat manifest motion ratios and total-track
+audio measurements as diagnostic comparisons, never as fixed provider targets.
+
+Read `references/performance-system.md`. Require the exact
+`business-human-performance-primitives-v1` SHA-256 recorded in
+`performance-plan.json`, and require every beat to carry a legal semantic
+primitive chain. On MiniMax or IndexTTS-2, build `performance-beat-map.json` from the exact
+final audio and measured segment boundaries before upload; the map must bind
+that audio's SHA-256. It is a planning and rendered-QA artifact, not a promise
+of frame-accurate HeyGen motion or a copy of the 123 timeline.
+
 ## Transport
 
 Use the connected HeyGen plugin. Inspect the account with `get_current_user`
@@ -10,7 +32,9 @@ claim that plugin spend uses browser-only plan credits.
 
 Read the recorded narration provider before building any payload. On `minimax`,
 upload and bind the exact MiniMax audio; HeyGen must not re-synthesize it. On
-`heygen`, submit the verbatim script with verified HeyGen `voice1`.
+`indextts`, upload and bind the exact IndexTTS-2 audio; HeyGen must not
+re-synthesize it. On `heygen`, submit the verbatim script with verified HeyGen
+`voice1`.
 
 Use `create_video_from_avatar` when the approved look has a ready look ID. Use
 `create_video_from_image` only when the exact approved image is represented by
@@ -31,13 +55,15 @@ Video Agent may treat the script as a concept and rewrite it.
    `create_photo_avatar` with the existing `image1` group ID. Poll until the
    resulting look is ready and resolve its fresh look ID.
 6. On `minimax`, verify `huangxu1`, the local audio SHA-256,
-   and the uploaded HeyGen audio asset ID. On `heygen`, resolve HeyGen `voice1`
+   and the uploaded HeyGen audio asset ID. On `indextts`, verify the authorized
+   speaker URL, the local audio SHA-256, and the uploaded HeyGen audio asset ID.
+   On `heygen`, resolve HeyGen `voice1`
    with `get_voice`; require the exact stable voice ID and expected language.
    A matching display name is insufficient.
 
 ## Narration safety
 
-On `minimax`, submit the exact MiniMax audio as the driving audio. HeyGen must not re-synthesize,
+On `minimax` or `indextts`, submit the exact external audio as the driving audio. HeyGen must not re-synthesize,
 paraphrase, translate, or rewrite it. Do not also pass a HeyGen voice ID or a script field that
 could trigger a second narration. On `heygen`, submit the approved plain-text script with the
 exact HeyGen `voice1` ID. For `create_video_from_avatar` and `create_video_from_image`, omit
@@ -58,15 +84,21 @@ Pass and verify:
 
 - the approved script or approved opening-preview excerpt verbatim on `heygen`;
 - exact HeyGen `voice1` ID on `heygen`;
-- exact MiniMax audio asset ID and bound local SHA-256 on `minimax`;
-- complete view-mode-aware motion prompt;
+- exact MiniMax or IndexTTS-2 audio asset ID and bound local SHA-256 on those routes;
+- exact primitive-library binding and a MiniMax/IndexTTS-2 `performance-beat-map.json`
+  bound to that same local audio SHA-256;
+- complete view-mode-aware motion prompt written in the positive authoring style of `references/realism.md`, including the living idle floor, neck-and-shoulder coupling, and stability limits;
 - portrait `9:16`;
 - `720P`;
 - captions off;
 - one submission only.
 
-Reject any payload containing both a MiniMax driving-audio asset and a HeyGen narration voice.
+Reject any payload containing both an external driving-audio asset and a HeyGen narration voice.
 Never silently fall back to the unselected provider.
+
+Reject a ban-dominated motion prompt and any motion prompt that says nothing about idle
+behavior: both read as "hold still" and render a frozen, waxy performance. The prompt must
+describe a living person first and compress prohibitions into one short closing clause.
 
 The plugin chooses the engine from avatar type. Do not claim an explicit engine
 selection; verify Avatar IV compatibility from look metadata before spend.
@@ -88,3 +120,8 @@ and completed status exist.
 On timeout, continue polling the recorded ID. On an expired download URL, fetch
 the same result again. Never create another paid render to recover polling or a
 download.
+
+After download, run `scripts/compare_performance_reference.py` before approval.
+Preserve its JSON, Markdown, and contact-sheet evidence. A
+`reject_and_rerender` recommendation blocks approval; diagnostic clearance
+still requires the rest of the human/auto realism gate.

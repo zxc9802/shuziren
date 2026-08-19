@@ -55,6 +55,32 @@ A candidate is ineligible if it fails any of: identity, selected view mode, requ
 
 Mark the rejected slot. Do not silently generate extra candidates in the same round to replace it.
 
+## Motion-prompt authoring style
+
+Write every motion block as a positive, present-tense description of a real person mid-conversation, not a list of prohibitions. A ban-dominated prompt reads as "hold still" and produces the frozen, waxy performance that users report as stiffness.
+
+- Spend most of the prompt describing what the person is doing: breathing, blinking, weighing a phrase, letting a nod ripple through the shoulders, letting a gesture come to rest.
+- Anchor described motion to the actual script's beats — the hook, the contrast, the conclusion — so movement reads as motivated by meaning rather than random fidgeting or imposed choreography.
+- State the living idle floor explicitly in every motion prompt. Silence about idle behavior is what lets the model freeze between gestures.
+- Compress all prohibitions into one short closing clause. Never let bans outnumber the life description, and never submit a motion prompt that only forbids.
+
+## Living idle floor
+
+Stillness must stay alive. Between gestures, during pauses, and across listening beats, all of the following continue for the whole take:
+
+- Quiet breathing stays visible as a gentle chest-and-shoulder rise and fall.
+- The head keeps a barely visible one-to-two-degree drift with small resettles; it is never bolted in place.
+- Resting hands and fingers keep natural micro-relaxation — a fingertip eases, a knuckle softens — and never freeze into a wax pose.
+- Eyes stay moist and attentive with irregular blinks; facial muscle tone keeps sub-visible shifts.
+
+A freeze-frame idle is a stiffness defect, not restraint.
+
+## Coupled, speech-led motion
+
+- Head motion rides on the neck and shoulders: every head turn or nod carries a slight neck lean and shoulder response that the torso absorbs. Never rotate the head on a frozen body like a turret.
+- Speech shows in the whole face: the jaw genuinely opens on open vowels, cheeks and nasolabial folds respond, and the throat moves on emphatic beats. Reject lip-only articulation on an otherwise static face.
+- Head and brow micro-accents track the prosody of the actual narration — a slight nod or brow lift lands on stressed syllables, a soft settle lands at clause ends — so motion reads as caused by the audio rather than layered on top of it.
+
 ## Motion irregularity
 
 Keep camera and framing fixed. Then make the performance imperfect on purpose:
@@ -67,13 +93,32 @@ Keep camera and framing fixed. Then make the performance imperfect on purpose:
 - Complete at most one prepare-stroke-retract-cooldown hand cycle, then return hands to neutral before another gesture.
 - Ban any motion that repeats on a fixed period, continuous gesturing, mechanical face/head/hand synchrony, fused hands, or invented limbs.
 
+## Stability limits
+
+Avatar IV warps when asked to move too much, too fast, or in several channels at once. Instability is a motion-budget problem, not bad luck:
+
+- Keep gestures compact, unhurried, and forearm-led near the torso. Large or fast full-arm strokes cause hand melt, finger smearing, and sleeve warping at stroke peaks.
+- Stagger the channels: a hand stroke, a head accent, and a torso shift must not peak together. One primary motion at a time, with face and gaze leading.
+- Identity stays locked while moving: facial geometry, eyewear, hairline, and ears must not warp, swim, or flicker during turns and emphasis.
+- Clothing pattern, background structure, and framing must not crawl, breathe, or jitter between frames.
+- When the script is long or gesture-heavy, prefer adopting a look whose hands rest on a support; hands suspended mid-air in the source image carry a higher stroke-peak warp risk in animation.
+
 ## Realism QA gate
 
 Run this gate on every completed preview and every completed full raw before delivery. A failure makes the artifact ineligible. Do not treat a realism failure as something ChatCut can fix.
 
+- Compare channel relationships against the verified `business-human-123-v1` performance reference, not its identity or styling. Reject a hands-led take whose face, head, neck, shoulders, and torso remain disconnected; use the manifest ratios only as diagnostic evidence, never as fixed motion targets.
+- Run `scripts/compare_performance_reference.py` on the downloaded artifact and inspect its rendered contact sheet at the reported worst timestamps. The comparison deliberately excludes identity and pixel similarity. `reject_and_rerender` fails this gate; `eligible_for_human_review` still requires the visual checks below.
+- Inspect the total audio track for repetitive dead-silence restarts at segment boundaries. Natural semantic pauses are allowed, but a recurring stop-start cadence that repeatedly freezes and relaunches the avatar fails performance realism.
 - Skin does not look retouched, poreless, plastic, or waxy.
 - Glasses reflections and refraction track head motion; lenses never read as empty frames.
 - Resting hands do not freeze into a wax-figure pose; micro-motion remains present when no gesture is active.
+- Breathing stays visible at the chest or shoulders across the whole file; the person never reads as a statue with a moving mouth.
+- Head motion carries a neck-and-shoulder response absorbed by the torso; reject turret-head rotation on a frozen body.
+- Speech energy reaches the jaw, cheeks, and brows, with micro-accents landing on stressed syllables; reject lip-only articulation on a static face.
+- Facial geometry, eyewear, hairline, and ears stay stable through head turns and emphasis — no warping, swimming, or flicker.
+- Hands keep their shape through every gesture; no finger melt, fusion, or smearing at stroke peaks.
+- The frame is steady: no frame jitter and no crawling in clothing pattern or background structure.
 - Background bokeh stays stable and does not "breathe".
 - Blink timing is irregular; no looping sway or metronome head bob.
 - For side-mode jobs, gaze stays on the same-direction off-camera point and never snaps back to the lens.

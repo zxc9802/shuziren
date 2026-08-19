@@ -1,6 +1,7 @@
 import unittest
 
 from scripts.dhflow.heygen_web import build_web_submission_plan
+from scripts.dhflow.performance_director import plan_performance
 
 
 class HeyGenPluginTransportTests(unittest.TestCase):
@@ -40,21 +41,11 @@ class HeyGenPluginTransportTests(unittest.TestCase):
             "aspect_ratio": "9:16",
             "resolution": "720p",
         }
-        performance_plan = {
-            "hand_topology": "separated",
-            "view_mode": "three_quarter_left_45",
-            "beats": [
-                {
-                    "id": "beat-001",
-                    "text": script,
-                    "role": "explanation",
-                    "face": {"action": "attentive_neutral", "intensity": "subtle"},
-                    "head": {"action": "micro_nod", "intensity": "subtle"},
-                    "hands": {"main_action": "palm_up"},
-                    "body": {"action": "stable_torso", "intensity": "subtle"},
-                }
-            ],
-        }
+        performance_plan = plan_performance(
+            [{"id": "beat-001", "text": script, "role": "explanation"}],
+            "separated",
+            view_mode="three_quarter_left_45",
+        )
 
         plan = build_web_submission_plan(
             script=script,
@@ -86,6 +77,17 @@ class HeyGenPluginTransportTests(unittest.TestCase):
         self.assertIn("45-degree", plan["preSubmit"]["motionPrompt"])
         self.assertIn("off-camera", plan["preSubmit"]["motionPrompt"])
         self.assertNotIn("Direct eye contact", plan["preSubmit"]["motionPrompt"])
+        self.assertEqual(
+            "business-human-performance-primitives-v1",
+            plan["preSubmit"]["performancePrimitiveLibrary"]["id"],
+        )
+        self.assertEqual(
+            "buildPerformanceBeatMap",
+            plan["actionOrder"][4],
+        )
+        self.assertTrue(
+            plan["preSubmit"]["guards"]["minimaxAudioPerformanceBeatMapRequired"]
+        )
         self.assertTrue(plan["preSubmit"]["guards"]["viewModeMustMatchApprovedLook"])
         self.assertEqual(
             plan["preSubmit"]["previewContract"],

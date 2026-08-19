@@ -2,11 +2,11 @@
 
 ## Identity and job looks
 
-The registry is the trust boundary. `minimax_voice1` is the stable MiniMax voice `huangxu1`, HeyGen `voice1` is the connected account's private cloned voice, and `image1` is the boss identity master. Store only authorized local fingerprints and stable remote IDs; never store credentials, headers, temporary URLs, or raw provider payloads.
+The registry is the trust boundary. `minimax_voice1` is the stable MiniMax voice `huangxu1`, `indextts_voice1` is the authorized IndexTTS-2 speaker reference, HeyGen `voice1` is the connected account's private cloned voice, and `image1` is the boss identity master. Store only authorized local fingerprints and stable remote IDs; never store credentials, headers, temporary URLs, or raw provider payloads.
 
 Interactive jobs begin with four independent per-job choices plus one conditional look choice:
 
-1. whether narration uses MiniMax or HeyGen;
+1. whether narration uses MiniMax, HeyGen, or IndexTTS-2;
 2. whether to use the company-material route;
 3. whether to generate a new four-candidate boss-look round;
 4. when generating a new look, whether it is front, left 45°, or right 45°;
@@ -14,7 +14,7 @@ Interactive jobs begin with four independent per-job choices plus one conditiona
 
 Auto jobs skip those questions and lock the defaults in `references/auto-mode.md`: MiniMax, no company materials, `original_image1` / `front`, and no preview. Record `operating_mode=auto` only when the user requests 全自动. Never infer it from silence.
 
-Ask “这次配音使用 MiniMax，还是 HeyGen？” immediately after authorization, record only `minimax` or `heygen`, and read `references/voice-routing.md`. Never reuse an earlier voice-provider choice. Then ask “这个任务是否需要加入公司素材？” before drafting or rewriting the script. A no answer keeps the normal talking-head script route. A yes answer requires reading `references/material-routing.md`, inventorying real company assets, and writing the narration around only the capabilities those assets support. Then ask the image question. A no answer selects `original_image1`. A yes answer requires the exact front/left-45°/right-45° question from `references/view-modes.md` and creates exactly four labeled built-in-model candidates directly from `original_image1` under the Candidate-image generation contract in `SKILL.md`. Keep identity, wardrobe, setting, framing, approved view mode, and requested expression consistent across the four; vary only restrained non-identity details such as gesture phase, shoulder relaxation, and composition balance. Display the four together. The selected candidate cannot become the sole job image until the user explicitly identifies it, such as “采用第2张”; a bare “采用” is ambiguous. Record only the selected candidate through the single-image approval state and retain an adopted look in the same identity group with a task-derived name; never overwrite `image1`.
+Ask “这次配音使用 MiniMax，HeyGen，还是 IndexTTS-2？” immediately after authorization, record only `minimax`, `heygen`, or `indextts`, and read `references/voice-routing.md`. Never reuse an earlier voice-provider choice. Then ask “这个任务是否需要加入公司素材？” before drafting or rewriting the script. A no answer keeps the normal talking-head script route. A yes answer requires reading `references/material-routing.md`, inventorying real company assets, and writing the narration around only the capabilities those assets support. Then ask the image question. A no answer selects `original_image1`. A yes answer requires the exact front/left-45°/right-45° question from `references/view-modes.md` and creates exactly four labeled built-in-model candidates directly from `original_image1` under the Candidate-image generation contract in `SKILL.md`. Keep identity, wardrobe, setting, framing, approved view mode, and requested expression consistent across the four; vary only restrained non-identity details such as gesture phase, shoulder relaxation, and composition balance. Display the four together. The selected candidate cannot become the sole job image until the user explicitly identifies it, such as “采用第2张”; a bare “采用” is ambiguous. Record only the selected candidate through the single-image approval state and retain an adopted look in the same identity group with a task-derived name; never overwrite `image1`.
 
 ## Seven planning artifacts
 
@@ -24,9 +24,15 @@ Ask “这次配音使用 MiniMax，还是 HeyGen？” immediately after author
 2. `content-beats.json`: character-preserving semantic beats.
 3. `voice-plan.json`: the exact approved text segmented losslessly by semantic beat, with per-segment speed, pause, emphasis, emotion, and emotion intensity. Create it before every preview or full-script synthesis; never reuse a preview plan as the full-script plan.
 4. `visual-plan.json`: identity master, job-look policy, scene, framing, pose, topology, QA.
-5. `performance-plan.json`: face, head, hand, and body behavior with complete gesture cycles.
+5. `performance-plan.json`: face, head, hand, and body behavior with complete gesture cycles, bound to the verified private `business-human-123-v1` reference and the exact versioned performance-primitive library. It records the reference/library hashes, one legal semantic-relative primitive chain per beat, the whole-person speech-coupling contract, and local-only/no-provider-upload boundary.
 6. `heygen-app-plan.json`: backward-compatible filename containing the `heygen-plugin-structured` action plan.
 7. `state.json`: v3 state at `planned` for interactive jobs, or `preview_choice_recorded` after `--auto` applies auto defaults, with image/preview/raw approvals false until a later bound event.
+
+After exact narration, add `final-audio-segments.json` and
+`performance-beat-map.json`. After each downloaded preview/full raw, add the
+local `performance-qc.json`, `realism-review.md`, and
+`comparison-contact-sheet.jpg` evidence pack. These are execution/QA artifacts,
+not extra planning files and not public reference media.
 
 Planning is valid for scripts estimated at 15 seconds or longer, with no maximum duration, and preserves the submitted text exactly.
 
@@ -103,7 +109,7 @@ Queue files are strict JSON: `{"version":1,"job_ids":[...]}`. `scripts/queue_job
 - Image approval selects only the generated look.
 - Preview approval permits only full-raw generation.
 - Raw approval permits only the transition to post-production.
-- After raw approval, use ChatCut with the route explicitly recorded before script drafting. The normal route adds pacing, pause cleanup, dynamic captions, BGM, voice ducking, and flower text without company B-roll. The material route uses only the 1–2 类真实公司素材 most relevant to the approved script, adds only 1–2 个 AI 补充素材 for distinct visual gaps, and follows transcript-timed placement from `material-plan.json`; never串联全部素材 merely to fill the timeline.
+- After raw approval, use ChatCut with the route explicitly recorded before script drafting. Keep this skill's ChatCut flow and read `references/chatcut-editing.md`. Finalize A-roll through ChatCut Script, write `chatcut-a-roll-report.json`, and block every downstream layer until the A-roll gate passes. Interactive jobs must stop for explicit A-roll approval; auto jobs may continue only after the same A-roll checks pass with reviewer `auto-mode`. Both routes then add simplified-Chinese semantic captions, transcript-grounded material when applicable, script-grounded MG on uncovered explanation beats, restrained flower text and speech-led sound effects, BGM, voice ducking, and final `smooth_audio`. The normal route does this without company B-roll. The material route uses only the 1–2 类真实公司素材 most relevant to the approved script, adds only 1–2 个 AI 补充素材 for distinct visual gaps, follows transcript-timed placement from `material-plan.json`, and never overlaps those assets with MG; never串联全部素材 merely to fill the timeline. Read `references/chatcut-mg.md` before MG authoring. The sibling skill `数字人剪辑` runs the same package on an already-approved raw without restarting generation.
 - ChatCut may start only after `post_production` validates the bound full-raw approval.
 
 Rights confirmation, account authorization, credit-spend consent, automatic QA, silence, “继续”, or approval of another artifact cannot substitute in interactive mode. Auto mode may bind raw approval only after a QA-passed full raw, with reviewer exactly `auto-mode` and `assets.job_route.operating_mode=auto`. `auto-mode` is not a valid image or preview reviewer.

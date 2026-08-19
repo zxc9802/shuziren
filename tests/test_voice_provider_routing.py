@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
-VOICE_QUESTION = "这次配音使用 MiniMax，还是 HeyGen？"
+VOICE_QUESTION = "这次配音使用 MiniMax，HeyGen，还是 IndexTTS-2？"
 MINIMAX_VOICE_ID = "huangxu1"
 RETIRED_MINIMAX_VOICE_ID = "huangxu_enterprise_20260731_v2"
 
@@ -18,7 +18,7 @@ class VoiceProviderRoutingTests(unittest.TestCase):
 
         self.assertIn(VOICE_QUESTION, skill)
         self.assertLess(skill.index(VOICE_QUESTION), skill.index(material_question))
-        self.assertIn("record `minimax` or `heygen`", skill)
+        self.assertIn("record `minimax`, `heygen`, or `indextts`", skill)
         self.assertIn("never reuse an earlier voice-provider choice", skill)
 
     def test_minimax_route_uses_the_approved_stable_voice(self):

@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "id": "business-human-123-v1",
+  "profile": "business-human-1",
+  "artifact": {
+    "relative_path": "assets/performance-references/business-human-123.mp4",
+    "sha256": "bba288fd4dbece4fb30f8cc5b463d3b25b1650163044a18f55c6d75bff3148ed",
+    "size_bytes": 4204364,
+    "duration_seconds": 26.108005,
+    "video": {
+      "codec": "h264",
+      "width": 1024,
+      "height": 576,
+      "fps": "30/1"
+    },
+    "audio": {
+      "codec": "aac",
+      "sample_rate_hz": 44100,
+      "channels": 2
+    }
+  },
+  "privacy": {
+    "private_local_only": true,
+    "git_ignored": true,
+    "never_upload_as_provider_input": true
+  },
+  "scope": {
+    "learn": [
+      "speech-led whole-person channel coupling",
+      "living idle between semantic actions",
+      "face-head-neck-shoulder response",
+      "asymmetric prepare-stroke-retract-cooldown gestures",
+      "gaze and eyelid variation motivated by speech",
+      "continuous total-track rhythm without repetitive dead-silence restarts"
+    ],
+    "exclude": [
+      "person identity",
+      "voice identity",
+      "script wording",
+      "wardrobe",
+      "background",
+      "captions",
+      "horizontal aspect ratio",
+      "exact gesture timestamps"
+    ]
+  },
+  "observations": {
+    "motion_balance": {
+      "head_to_hand_ratio": 0.303,
+      "upper_body_to_hand_ratio": 0.548,
+      "measurement_role": "diagnostic only; never use as an exact provider target"
+    },
+    "total_audio_track": {
+      "loudness_range_lu": 4.4,
+      "silence_threshold_db": -35,
+      "minimum_silence_seconds": 0.18,
+      "detected_silence_events": 1,
+      "measurement_role": "continuity reference only; never imitate the reference voice"
+    }
+  }
+}

@@ -1026,8 +1026,8 @@ def _validate_assets(assets) -> None:
         if asset_type == "job_route":
             if details["operating_mode"] not in {"interactive", "auto"}:
                 raise ValueError("operating_mode must be interactive or auto")
-            if details["voice_provider"] not in {"minimax", "heygen"}:
-                raise ValueError("voice_provider must be minimax or heygen")
+            if details["voice_provider"] not in {"minimax", "heygen", "indextts"}:
+                raise ValueError("voice_provider must be minimax, heygen, or indextts")
             if details["material_route"] not in {"none", "company"}:
                 raise ValueError("material_route must be none or company")
             continue

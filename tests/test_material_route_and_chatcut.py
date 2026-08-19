@@ -53,8 +53,23 @@ class MaterialRouteAndChatCutTests(unittest.TestCase):
 
         for content in (skill, framework, checklist):
             self.assertIn("ChatCut", content)
+            self.assertIn("script-grounded MG", content)
             self.assertNotIn("HyperFrames", content)
             self.assertNotIn("hyperframes:", content)
+
+    def test_chatcut_mg_is_script_grounded_and_face_safe(self):
+        mg = (SKILL_ROOT / "references" / "chatcut-mg.md").read_text(
+            encoding="utf-8"
+        )
+        skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("mg-plan.json", mg)
+        self.assertIn("3–6 MGs", mg)
+        self.assertIn("approved script", mg)
+        self.assertIn("Do not invent", mg)
+        self.assertIn("bottom: 576", mg)
+        self.assertIn("chatcut:create-motion-graphics", skill)
+        self.assertIn("references/chatcut-mg.md", skill)
 
 
 if __name__ == "__main__":

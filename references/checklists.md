@@ -4,13 +4,13 @@ Use each checklist at its named gate. A later gate never substitutes for an earl
 
 ## Authorization and planning
 
-- [ ] Confirm rights to `minimax_voice1`, HeyGen `voice1`, `image1`, the script, intended use, and distribution as applicable.
+- [ ] Confirm rights to `minimax_voice1`, `indextts_voice1`, HeyGen `voice1`, `image1`, the script, intended use, and distribution as applicable.
 - [ ] Confirm the connected HeyGen account and subscription-credit source with `get_current_user`; never hard-code a balance.
 - [ ] Record `interactive` or `auto` for this job only; on `auto`, read `references/auto-mode.md` and skip the confirmation questions below.
-- [ ] Ask exactly: “这次配音使用 MiniMax，还是 HeyGen？” immediately after authorization.
-- [ ] Record `minimax` or `heygen` only for this job; never inherit an earlier voice-provider choice.
-- [ ] On MiniMax, require `huangxu1`; on HeyGen, resolve the private HeyGen `voice1` at runtime.
-- [ ] Before every preview or full-script synthesis, create a new `voice-plan.json` from that exact approved text with per-segment emotion, emotion intensity, speed, emphasis, and pause direction.
+- [ ] Ask exactly: “这次配音使用 MiniMax，HeyGen，还是 IndexTTS-2？” immediately after authorization.
+- [ ] Record `minimax`, `heygen`, or `indextts` only for this job; never inherit an earlier voice-provider choice.
+- [ ] On MiniMax, require `huangxu1`; on IndexTTS-2, require the authorized speaker URL from `.env`; on HeyGen, resolve the private HeyGen `voice1` at runtime.
+- [ ] Before every preview or full-script synthesis, create a new `voice-plan.json` from that exact approved text with per-segment provider delivery, emphasis, and pause direction. On MiniMax, record internal `director_intensity` plus resolved `emotion` and numeric `speed`, and verify neither director/intensity field enters the provider payload. On IndexTTS-2, record the eight-float emotion vector and `emotion_intensity` used as `emotion_alpha`.
 - [ ] Verify the planned segment text concatenates losslessly and byte-for-byte to the approved input; reject inserted, deleted, paraphrased, or reordered text.
 - [ ] Before drafting or rewriting the script, ask exactly: “这个任务是否需要加入公司素材？”
 - [ ] Record explicit yes/no only for this job; never inherit an earlier material choice.
@@ -27,9 +27,10 @@ Use each checklist at its named gate. A later gate never substitutes for an earl
 - [ ] Lock MiniMax, no company materials, `original_image1`, `front`, and preview disabled.
 - [ ] Treat the supplied script as approved; rewrite TTS-unsafe phrasing without waiting; stop if shorter than 15 seconds.
 - [ ] Run `scripts/plan_job.py --auto` then `apply-auto-defaults`.
+- [ ] Verify `business-human-123-v1` locally and require the performance-only binding before the single full-raw submission.
 - [ ] Submit one full raw; skip preview and new-look generation.
 - [ ] Auto-approve raw only after QA pass with reviewer `auto-mode`.
-- [ ] Enter ChatCut on the no-material route; never linger in an awaiting-approval state.
+- [ ] Enter ChatCut on the no-material route; write `chatcut-a-roll-report.json` and pass A-roll auto-QA with reviewer `auto-mode` instead of opening a human approval wait.
 
 ## Per-job image decision
 
@@ -57,17 +58,23 @@ Use each checklist at its named gate. A later gate never substitutes for an earl
 ## HeyGen plugin pre-spend
 
 - [ ] Read `references/plugin-submission.md`.
+- [ ] Run `python3 scripts/verify_performance_reference.py --json`; require `business-human-123-v1` and its exact SHA-256 before spend.
+- [ ] Verify `performance-plan.json` marks the 123 reference as performance-only and forbids provider upload or imitation of identity, voice, wording, wardrobe, background, captions, horizontal composition, and exact timestamps.
+- [ ] Verify the exact `business-human-performance-primitives-v1` hash and one legal semantic-relative `primitive_chain` per beat; reject frame-accurate provider claims.
+- [ ] Verify hands do not carry motion alone: face, head, neck, shoulders, and torso respond to the same semantic cause with staggered peaks and a complete return to rest.
 - [ ] Use the connected HeyGen plugin and its reported subscription-credit source.
 - [ ] Resolve or upload the exact approved look; for local images allow only the HeyGen v3 asset bridge.
 - [ ] Verify the approved look matches the recorded `front`, `three_quarter_left_45`, or `three_quarter_right_45` mode.
 - [ ] Verify the look is ready, belongs to `image1`, and supports `avatar_iv`.
 - [ ] Read the recorded narration provider and reject a missing or inherited choice.
-- [ ] On MiniMax, verify `huangxu1`, synthesize the approved text according to the current `voice-plan.json`, and upload the exact MiniMax audio with its bound SHA-256. HeyGen must not re-synthesize it.
+- [ ] On MiniMax, verify `huangxu1`, synthesize the approved text according to the current `voice-plan.json`, preserve exact segment files and measured final-audio boundaries, run `scripts/build_performance_beat_map.py`, and require its audio SHA-256 to match the exact uploaded MiniMax audio. HeyGen must not re-synthesize it.
+- [ ] On IndexTTS-2, verify `INDEXTTS_302_API_KEY` and `INDEXTTS_SPEAKER_AUDIO_URL`, run `scripts/synthesize_indextts.py`, preserve exact segment files and measured final-audio boundaries, run `scripts/build_performance_beat_map.py`, and require its audio SHA-256 to match the exact uploaded IndexTTS-2 audio. HeyGen must not re-synthesize it.
 - [ ] On HeyGen, resolve the exact stable HeyGen `voice1` ID with `get_voice` and submit the verbatim script.
-- [ ] Pass the verbatim script on HeyGen or the exact MiniMax audio asset on MiniMax; never pass both narration sources.
+- [ ] Pass the verbatim script on HeyGen or the exact MiniMax/IndexTTS-2 audio asset on those routes; never pass both narration sources.
 - [ ] Omit `voiceSettings` by default; use a video-tool voice field only after the same video endpoint and same voice have produced an intelligible, duration-consistent preview.
 - [ ] Set portrait `9:16`, `720P`, and captions off.
 - [ ] Preserve the full semantic voice direction and motion prompt.
+- [ ] Verify the motion prompt uses the positive authoring style with an explicit living idle floor, neck-and-shoulder coupling, and stability limits; reject a ban-dominated or idle-silent motion block.
 - [ ] Use `create_video_from_avatar` or `create_video_from_image`; reject Video Agent for exact-script jobs.
 - [ ] For a preview, use an approved opening excerpt targeting 15 seconds and require actual-duration QA.
 - [ ] Submit once only after every field passes.
@@ -84,14 +91,20 @@ Use each checklist at its named gate. A later gate never substitutes for an earl
 ## Motion, voice, and full-file QA
 
 - [ ] Verify speed, pauses, emphasis, and emotion vary by semantic beat.
-- [ ] Verify emotion intensity uses amplified but controlled contrast: when high-impact and explanatory beats both exist, require at least `0.45` intensity separation, cap every segment at `0.85`, and reject all-`calm`, shouting, theatrical, or identity-distorting delivery.
+- [ ] Verify MiniMax `director_intensity` or provider emotion intensity uses amplified but controlled contrast: when high-impact and explanatory beats both exist, require at least `0.45` separation, cap every segment at `0.85`, and reject all-`calm`, shouting, theatrical, or identity-distorting delivery. For MiniMax, inspect the final allowlisted request and reject any serialized `director_intensity` or `emotion_intensity`.
 - [ ] Verify every pause follows approved punctuation or a true semantic boundary; reject any pause inside a subject-predicate, verb-object/complement, fixed phrase, proper noun, or number-plus-unit.
 - [ ] Verify fixed camera and framing: no pan, zoom, tilt, crop jump, cuts, or shake.
 - [ ] For front mode, verify direct gaze. For a 45° side mode, verify the off-camera gaze anchor and reject any eye twist back to the lens.
 - [ ] Verify irregular blinks, subtle expressions, calm breathing, stable torso, and phrase-led head movement returning to the selected view anchor.
+- [ ] Verify breathing stays visible at the chest or shoulders for the whole file and idle stretches keep micro-motion; reject any statue-with-a-moving-mouth freeze.
+- [ ] Verify head motion rides on a neck-and-shoulder response absorbed by the torso; reject turret-head rotation on a frozen body.
+- [ ] Verify speech energy reaches the jaw, cheeks, and brows with micro-accents on stressed syllables; reject lip-only articulation on a static face.
+- [ ] Verify identity and frame stability through motion: no facial-geometry or eyewear warp, no melting or smearing hands at stroke peaks, no crawling clothing or background texture, no frame jitter.
 - [ ] Pair each gaze change with a small head adjustment plus eyelid/brow response; reject pupil-only motion, rapid eye scans, and forced continuous smiling.
 - [ ] Verify each visible-hand gesture completes prepare, stroke, retract, cooldown, then neutral.
 - [ ] Reject pendulum motion, repetitive gestures, mechanical synchrony, fused anatomy, or invented limbs.
+- [ ] Run `scripts/compare_performance_reference.py` on the downloaded preview/full raw and preserve `performance-qc.json`, `realism-review.md`, and `comparison-contact-sheet.jpg`.
+- [ ] Treat `reject_and_rerender` or missing comparison evidence as QA failure; treat `eligible_for_human_review` as diagnostic clearance only, never final approval by itself.
 - [ ] Decode the complete media; verify duration, audio, lip sync, first/last word, and first/last frame.
 - [ ] Listen to the complete preview; fail voice QA when speech is unintelligible, differs from the approved text or selected voice, or is materially longer than its estimate or prior baseline.
 - [ ] Confirm HeyGen did not re-synthesize the exact MiniMax audio and that no silent provider fallback occurred.
@@ -104,10 +117,19 @@ Use each checklist at its named gate. A later gate never substitutes for an earl
 - [ ] Keep material-route choice, image, preview, and raw approvals separate.
 - [ ] Do not substitute rights consent, spending consent, automatic QA, silence, or an earlier “继续” in interactive mode.
 - [ ] In auto mode, bind raw approval only with reviewer `auto-mode` after QA pass; never auto-approve a failed QA or a generated look.
-- [ ] Start ChatCut post-production only after bound full-raw approval.
-- [ ] On the no-material route, add pacing, pause cleanup, dynamic captions, BGM, voice ducking, and flower text without company B-roll.
+- [ ] Start ChatCut post-production only after bound full-raw approval. Keep this skill's ChatCut flow; the sibling `数字人剪辑` is only for an already-approved raw invoked standalone.
+- [ ] Read `references/chatcut-editing.md`; use `read_script -> clean_script -> re-read timeline.md -> semantic edit -> apply_script -> re-read timeline.md` for spoken-content work, never timestamp cutting.
+- [ ] Apply approximately 1.1x to linked picture/audio only after A-roll structure is final; refresh timing and verify first/last word, cut points, pitch, lip sync, black frames, and full playback.
+- [ ] Write `chatcut-a-roll-report.json` before any downstream layer. In interactive mode, stop at `awaiting_a_roll_approval` until the user explicitly approves that A-roll; after feedback, revise and wait again.
+- [ ] In auto mode, continue only when the same A-roll report records every locked QA check as passed with reviewer `auto-mode`; otherwise stop before captions, B-roll, MG, sound effects, or music.
+- [ ] Build simplified-Chinese captions from the final post-speed timeline; segment on semantic boundaries and verify names, numbers, casing, punctuation, timing, and the caption safe area.
+- [ ] On the no-material route, add no company B-roll; continue with script-grounded MG, restrained flower text and speech-led sound effects, BGM, voice ducking, and final `smooth_audio`.
 - [ ] On the material route, verify every selected real asset has material-grounded narration, use only the 1–2 most relevant real company-asset categories, and never串联全部素材 merely to fill the timeline.
-- [ ] Create `material-plan.json`, generate only 1–2 AI supporting assets for distinct visual gaps, add “场景示意” when needed, and place assets from word-level transcript timestamps.
+- [ ] Create `material-plan.json`, generate only 1–2 AI supporting assets for distinct visual gaps, add “场景示意” when needed, and place assets from final word-level transcript timestamps before planning MG.
+- [ ] Read `references/chatcut-mg.md`, write `mg-plan.json` after the A-roll gate, captions, and material placement, and place 3–6 script-grounded MGs on uncovered explanation beats without covering the face, hands, or caption band.
+- [ ] Do not overlap MG with company B-roll, a supporting still, or competing flower text on the same span.
+- [ ] Add short sound effects only on hooks, viewpoint landings, amounts, reversals, material/MG entrances, or important transitions; keep them below speech and off follower tracks by default.
+- [ ] Treat stale Script/markdown errors as one refresh-and-retry case; stop the current stage on missing/ambiguous assets, access denial, locked conflicts, offline media, or uncertain proof.
 - [ ] Use the approved raw unchanged as the base; preserve identity, lip sync, voice, and performance.
 - [ ] Run ChatCut project-structure, timeline, caption, audio, visual, full-export, and final-media QA.
 
@@ -115,6 +137,6 @@ Use each checklist at its named gate. A later gate never substitutes for an earl
 
 - [ ] Use the strict FIFO queue; never run two jobs concurrently.
 - [ ] Stop all later jobs while the head waits for image, preview, or raw approval.
-- [ ] Archive script, seven plans, state v3, approved look, stable IDs, hashes, QA, evidence, raw/final media, and retry notes.
+- [ ] Archive script, seven plans, `final-audio-segments.json`, `performance-beat-map.json`, `chatcut-a-roll-report.json`, state v3, approved look, stable IDs, hashes, QA evidence pack, raw/final media, and retry notes.
 - [ ] Confirm no credentials, headers, temporary URLs, or embedded private media are stored.
 - [ ] Mark `complete` only after final-file QA passes.

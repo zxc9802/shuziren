@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "id": "business-human-performance-primitives-v1",
+  "reference_id": "business-human-123-v1",
+  "scope": "performance_only",
+  "provider_contract": {
+    "timing": "semantic_relative_only",
+    "frame_accurate_timing_claimed": false,
+    "exact_reference_timeline_copy_forbidden": true,
+    "provider_upload_forbidden": true
+  },
+  "primitives": [
+    {
+      "id": "living_idle",
+      "channels": ["head", "neck", "shoulders", "torso", "hands", "eyelids"],
+      "semantic_job": "Keep a quiet person visibly alive before, between, and after motivated actions.",
+      "prompt_fragment": "quiet breathing and irregular micro-adjustments continue",
+      "reject_when": ["freeze_frame_idle", "fixed_period_sway", "metronome_blink"]
+    },
+    {
+      "id": "gaze_return",
+      "channels": ["eyes", "head"],
+      "semantic_job": "Allow a short attentive offset and return to the approved gaze anchor.",
+      "prompt_fragment": "the gaze makes a brief natural offset and returns to its anchor",
+      "reject_when": ["rapid_eye_scan", "eye_only_twist", "lost_view_anchor"]
+    },
+    {
+      "id": "brow_lead",
+      "channels": ["brows", "eyelids", "cheeks", "jaw"],
+      "semantic_job": "Let facial intent appear before larger movement.",
+      "prompt_fragment": "the brows and whole face register the phrase first",
+      "reject_when": ["lip_only_articulation", "frozen_upper_face", "theatrical_grimace"]
+    },
+    {
+      "id": "head_accent",
+      "channels": ["head"],
+      "semantic_job": "Give a small phrase-led response after the face has changed.",
+      "prompt_fragment": "a small head accent follows the facial cue",
+      "reject_when": ["continuous_nodding", "pendulum_motion", "large_rotation"]
+    },
+    {
+      "id": "neck_shoulder_absorb",
+      "channels": ["neck", "shoulders"],
+      "semantic_job": "Carry head motion into the body instead of rotating on a frozen torso.",
+      "prompt_fragment": "the neck and shoulders softly absorb that head movement",
+      "reject_when": ["turret_head", "frozen_shoulders", "simultaneous_peak"]
+    },
+    {
+      "id": "torso_counterweight",
+      "channels": ["torso"],
+      "semantic_job": "Provide a restrained body response that supports a head or hand action.",
+      "prompt_fragment": "the torso adds a restrained counterweight without swaying",
+      "reject_when": ["full_body_sway", "camera_like_motion", "simultaneous_peak"]
+    },
+    {
+      "id": "hand_stroke",
+      "channels": ["forearm", "wrist", "hand", "fingers"],
+      "semantic_job": "Complete one motivated prepare-stroke-retract-cooldown cycle near the torso.",
+      "prompt_fragment": "one compact hand stroke completes and returns to rest",
+      "reject_when": ["isolated_hand_motion", "continuous_waving", "missing_return_to_rest"]
+    },
+    {
+      "id": "phrase_settle",
+      "channels": ["face", "head", "shoulders", "torso", "hands"],
+      "semantic_job": "Let channels settle in sequence while breathing continues.",
+      "prompt_fragment": "the phrase settles through the face, body, and hands in sequence while breathing continues",
+      "reject_when": ["all_channels_stop_together", "dead_silence_restart", "hard_pose_reset"]
+    }
+  ],
+  "role_chains": {
+    "hook": ["living_idle", "gaze_return", "brow_lead", "head_accent", "neck_shoulder_absorb", "hand_stroke", "torso_counterweight", "phrase_settle"],
+    "question": ["living_idle", "gaze_return", "brow_lead", "head_accent", "neck_shoulder_absorb", "hand_stroke", "torso_counterweight", "phrase_settle"],
+    "explanation": ["living_idle", "gaze_return", "brow_lead", "head_accent", "neck_shoulder_absorb", "hand_stroke", "torso_counterweight", "phrase_settle"],
+    "warning": ["living_idle", "gaze_return", "brow_lead", "head_accent", "neck_shoulder_absorb", "hand_stroke", "torso_counterweight", "phrase_settle"],
+    "steps": ["living_idle", "gaze_return", "brow_lead", "head_accent", "neck_shoulder_absorb", "hand_stroke", "torso_counterweight", "phrase_settle"],
+    "contrast": ["living_idle", "gaze_return", "brow_lead", "head_accent", "neck_shoulder_absorb", "hand_stroke", "torso_counterweight", "phrase_settle"],
+    "conclusion": ["living_idle", "gaze_return", "brow_lead", "head_accent", "neck_shoulder_absorb", "hand_stroke", "torso_counterweight", "phrase_settle"]
+  }
+}
